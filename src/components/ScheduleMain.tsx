@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { Task } from "@/generated/prisma/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,8 @@ interface ScheduleMainProps {
   onSelect: (taskId: number) => Promise<void>;
   onPriorityUp: (taskId: number, current: number) => Promise<void>;
   onPriorityDown: (taskId: number, current: number) => Promise<void>;
+  onEdit: (taskId: number, title: string) => Promise<void>;
+  onDelete: (taskId: number) => Promise<void>;
   onEndDay: () => Promise<void>;
   endingDay: boolean;
 }
@@ -27,6 +30,8 @@ export function ScheduleMain({
   onSelect,
   onPriorityUp,
   onPriorityDown,
+  onEdit,
+  onDelete,
   onEndDay,
   endingDay,
 }: ScheduleMainProps) {
@@ -34,6 +39,23 @@ export function ScheduleMain({
   const sorted = [...tasks].sort((a, b) =>
     b.priority !== a.priority ? b.priority - a.priority : a.id - b.id
   );
+
+  // ─── inline edit state ───
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editText, setEditText] = useState("");
+
+  function startEdit(task: Task) {
+    setEditingId(task.id);
+    setEditText(task.title);
+  }
+
+  /** บันทึกการแก้ไข — เรียกตอน blur; Escape จะ set editingId=null ก่อนจึงไม่บันทึก */
+  function commitEdit(taskId: number, original: string) {
+    if (editingId !== taskId) return; // ถูกยกเลิก (Escape) ไปแล้ว
+    const next = editText.trim();
+    setEditingId(null);
+    if (next && next !== original) void onEdit(taskId, next);
+  }
 
   return (
     <div className="flex flex-col gap-4 h-full">
@@ -54,11 +76,12 @@ export function ScheduleMain({
           {sorted.map((task, index) => {
             const isActive = task.id === currentTaskId;
             const isDone = task.status === "done";
+            const isEditing = editingId === task.id;
 
             return (
               <li
                 key={task.id}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border transition-colors
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border transition-colors group
                   ${isActive
                     ? "bg-amber-500/10 border-amber-500/40"
                     : "bg-zinc-800/50 border-zinc-700/40 hover:border-zinc-600/60"
@@ -70,55 +93,99 @@ export function ScheduleMain({
                 </span>
 
                 {/* Active dot */}
-                {isActive && (
+                {isActive && !isEditing && (
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 animate-pulse" />
                 )}
 
-                {/* Title */}
-                <span className={`flex-1 text-sm truncate min-w-0
-                  ${isDone ? "line-through text-zinc-600" : isActive ? "text-white" : "text-zinc-300"}`}
-                >
-                  {task.title}
-                </span>
-
-                {/* Pomodoro count */}
-                <Badge
-                  variant="outline"
-                  className="border-zinc-700 text-zinc-500 text-xs shrink-0 px-1.5"
-                >
-                  {task.completedPomodoros}/{task.estimatedPomodoros}🍅
-                </Badge>
-
-                {/* Priority controls */}
-                {!isDone && (
-                  <div className="flex flex-col gap-0.5 shrink-0">
-                    <button
-                      onClick={() => onPriorityUp(task.id, task.priority)}
-                      className="text-zinc-600 hover:text-amber-400 text-xs w-4 h-3.5 flex items-center justify-center leading-none"
-                      title="เพิ่ม priority"
-                    >
-                      ▲
-                    </button>
-                    <button
-                      onClick={() => onPriorityDown(task.id, task.priority)}
-                      className="text-zinc-600 hover:text-zinc-400 text-xs w-4 h-3.5 flex items-center justify-center leading-none"
-                      title="ลด priority"
-                    >
-                      ▼
-                    </button>
-                  </div>
+                {/* Title — แก้ไขแบบ inline ได้ */}
+                {isEditing ? (
+                  <input
+                    autoFocus
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") e.currentTarget.blur(); // → trigger onBlur commit
+                      if (e.key === "Escape") setEditingId(null);
+                    }}
+                    onBlur={() => commitEdit(task.id, task.title)}
+                    className="flex-1 min-w-0 text-sm bg-zinc-900 border border-amber-500/50 rounded px-2 py-1 text-white focus:outline-none"
+                  />
+                ) : (
+                  <span
+                    onDoubleClick={() => !isDone && startEdit(task)}
+                    title={isDone ? undefined : "ดับเบิลคลิกเพื่อแก้ชื่อ"}
+                    className={`flex-1 text-sm truncate min-w-0
+                      ${isDone ? "line-through text-zinc-600" : isActive ? "text-white" : "text-zinc-300"}`}
+                  >
+                    {task.title}
+                  </span>
                 )}
 
-                {/* Select button */}
-                {!isActive && !isDone && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => onSelect(task.id)}
-                    className="text-xs text-zinc-500 hover:text-amber-400 h-6 px-1.5 shrink-0"
-                  >
-                    เลือก
-                  </Button>
+                {!isEditing && (
+                  <>
+                    {/* Pomodoro count */}
+                    <Badge
+                      variant="outline"
+                      className="border-zinc-700 text-zinc-500 text-xs shrink-0 px-1.5"
+                    >
+                      {task.completedPomodoros}/{task.estimatedPomodoros}🍅
+                    </Badge>
+
+                    {/* Priority controls */}
+                    {!isDone && (
+                      <div className="flex flex-col gap-0.5 shrink-0">
+                        <button
+                          onClick={() => onPriorityUp(task.id, task.priority)}
+                          className="text-zinc-600 hover:text-amber-400 text-xs w-4 h-3.5 flex items-center justify-center leading-none"
+                          title="เพิ่ม priority"
+                        >
+                          ▲
+                        </button>
+                        <button
+                          onClick={() => onPriorityDown(task.id, task.priority)}
+                          className="text-zinc-600 hover:text-zinc-400 text-xs w-4 h-3.5 flex items-center justify-center leading-none"
+                          title="ลด priority"
+                        >
+                          ▼
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Select button */}
+                    {!isActive && !isDone && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => onSelect(task.id)}
+                        className="text-xs text-zinc-500 hover:text-amber-400 h-6 px-1.5 shrink-0"
+                      >
+                        เลือก
+                      </Button>
+                    )}
+
+                    {/* Edit + Delete — โผล่ตอน hover */}
+                    <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {!isDone && (
+                        <button
+                          onClick={() => startEdit(task)}
+                          className="text-zinc-600 hover:text-amber-400 text-xs w-5 h-5 flex items-center justify-center rounded hover:bg-zinc-700/50"
+                          title="แก้ชื่อ"
+                        >
+                          ✎
+                        </button>
+                      )}
+                      {/* ห้ามลบ task ที่กำลังโฟกัสอยู่ (กันลบพลาดระหว่างจับเวลา) */}
+                      {!isActive && (
+                        <button
+                          onClick={() => onDelete(task.id)}
+                          className="text-zinc-600 hover:text-red-400 text-xs w-5 h-5 flex items-center justify-center rounded hover:bg-zinc-700/50"
+                          title="ลบ task"
+                        >
+                          🗑
+                        </button>
+                      )}
+                    </div>
+                  </>
                 )}
               </li>
             );

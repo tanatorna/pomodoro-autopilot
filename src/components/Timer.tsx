@@ -10,6 +10,7 @@ interface TimerProps {
   remainingMs: number;
   totalMs: number;
   loading: boolean;
+  currentTaskTitle?: string | null;
   onStart: () => void;
   onPause: () => void;
   onResume: () => void;
@@ -38,6 +39,7 @@ export function Timer({
   remainingMs,
   totalMs,
   loading,
+  currentTaskTitle,
   onStart,
   onPause,
   onResume,
@@ -45,12 +47,24 @@ export function Timer({
 }: TimerProps) {
   const progress = totalMs > 0 ? (remainingMs / totalMs) * 100 : 0;
 
+  // โชว์ชื่อ task ที่กำลังทำ เฉพาะตอนโฟกัส/พักชั่วคราว
+  const showTask =
+    currentTaskTitle &&
+    (timerState.state === "WORK" || timerState.state === "PAUSED");
+
   return (
     <div className="flex flex-col items-center gap-6 select-none">
       {/* State badge */}
       <Badge className={`px-4 py-1 text-sm font-medium rounded-full border-0 ${STATE_COLORS[timerState.state]}`}>
         {STATE_LABELS[timerState.state]}
       </Badge>
+
+      {/* ชื่อ task ที่กำลังทำ */}
+      {showTask && (
+        <p className="-mt-3 max-w-xs text-center text-sm text-zinc-400 truncate">
+          กำลังทำ: <span className="font-medium text-zinc-100">{currentTaskTitle}</span>
+        </p>
+      )}
 
       {/* Countdown */}
       <div className="relative flex items-center justify-center w-64 h-64">

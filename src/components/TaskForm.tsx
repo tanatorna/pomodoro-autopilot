@@ -24,12 +24,13 @@ export function TaskForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (loading || !title.trim()) return; // guard กัน double-submit แทนการ disable input
     setLoading(true);
     await onAdd(title.trim(), pomodoros);
     setTitle("");
     setPomodoros(1);
     setLoading(false);
+    // ไม่ disable input ระหว่างโหลด → focus อยู่ที่ช่องเดิม พิมพ์ task ต่อได้เลย
   }
 
   return (
@@ -39,7 +40,7 @@ export function TaskForm({
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder={placeholder}
-        disabled={loading}
+        autoFocus
         className="bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500
           focus-visible:ring-amber-500 flex-1 min-w-0"
       />

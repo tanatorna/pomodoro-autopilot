@@ -4,12 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import type { Task } from "@/generated/prisma/client";
 import { usePomodoro } from "@/hooks/usePomodoro";
 import { useSettings } from "@/hooks/useSettings";
+import { useRoom } from "@/hooks/useRoom";
 import { Timer } from "./Timer";
 import { ScheduleMain } from "./ScheduleMain";
 import { BacklogView } from "./BacklogView";
 import { SettingsPanel } from "./SettingsPanel";
 import { InterruptButton } from "./InterruptButton";
-import type { TimerState } from "@/engine";
+import { RoomBadge } from "./RoomBadge";
 
 type SidePanel = "schedule" | "backlog" | "settings";
 
@@ -21,10 +22,11 @@ const PANEL_LABELS: Record<SidePanel, string> = {
 
 export function PomodoroApp() {
   const { settings, durations, updateSettings } = useSettings();
+  const { roomId, setRoom, createRoom, renameRoom, checkRoom, roomHeaders } = useRoom();
   const {
     timerState, display, remainingMs, loading,
     handleStart, handlePause, handleResume, handleRestart,
-  } = usePomodoro(durations);
+  } = usePomodoro(durations, roomHeaders);
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [backlog, setBacklog] = useState<Task[]>([]);
@@ -33,42 +35,43 @@ export function PomodoroApp() {
 
   // ─── Loaders ──────────────────────────────
   const loadTasks = useCallback(async () => {
-    const res = await fetch("/api/tasks");
+    if (!roomId) return;
+    const res = await fetch("/api/tasks", { headers: roomHeaders });
     setTasks((await res.json()) as Task[]);
-  }, []);
+  }, [roomId, roomHeaders]);
 
   const loadBacklog = useCallback(async () => {
-    const res = await fetch("/api/backlog");
+    if (!roomId) return;
+    const res = await fetch("/api/backlog", { headers: roomHeaders });
     setBacklog((await res.json()) as Task[]);
-  }, []);
+  }, [roomId, roomHeaders]);
 
-  // auto-generate schedule (silent, ไม่ block UI)
   const generateSchedule = useCallback(async () => {
-    await fetch("/api/schedule", { method: "POST" });
-  }, []);
+    if (!roomId) return;
+    await fetch("/api/schedule", { method: "POST", headers: roomHeaders });
+  }, [roomId, roomHeaders]);
 
   useEffect(() => {
+    if (!roomId) return;
     void loadTasks();
     void loadBacklog();
-  }, [loadTasks, loadBacklog]);
+  }, [roomId, loadTasks, loadBacklog]);
 
   // ─── Task actions ─────────────────────────
-  /** เพิ่ม task วันนี้ (pending → เข้า schedule ทันที) */
   async function handleAddTask(title: string, estimatedPomodoros: number) {
     await fetch("/api/tasks", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: roomHeaders,
       body: JSON.stringify({ title, estimatedPomodoros, status: "pending" }),
     });
     await loadTasks();
     await generateSchedule();
   }
 
-  /** park task ไว้ใน Backlog (ยังไม่รู้ว่าเมื่อไหร่จะทำ) */
   async function handleAddToBacklog(title: string, estimatedPomodoros: number) {
     await fetch("/api/tasks", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: roomHeaders,
       body: JSON.stringify({ title, estimatedPomodoros, status: "backlog" }),
     });
     await loadBacklog();
@@ -78,10 +81,30 @@ export function PomodoroApp() {
     await handleStart(taskId);
   }
 
+  /** แก้ชื่อ task (เช่น พิมพ์ผิด) */
+  async function handleEditTask(taskId: number, title: string) {
+    await fetch(`/api/tasks/${taskId}`, {
+      method: "PATCH",
+      headers: roomHeaders,
+      body: JSON.stringify({ title }),
+    });
+    await loadTasks();
+  }
+
+  /** ลบ task ทิ้ง */
+  async function handleDeleteTask(taskId: number) {
+    await fetch(`/api/tasks/${taskId}`, {
+      method: "DELETE",
+      headers: roomHeaders,
+    });
+    await loadTasks();
+    await generateSchedule();
+  }
+
   async function handlePriorityUp(taskId: number, current: number) {
     await fetch(`/api/tasks/${taskId}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: roomHeaders,
       body: JSON.stringify({ priority: current + 1 }),
     });
     await loadTasks();
@@ -91,7 +114,7 @@ export function PomodoroApp() {
   async function handlePriorityDown(taskId: number, current: number) {
     await fetch(`/api/tasks/${taskId}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: roomHeaders,
       body: JSON.stringify({ priority: Math.max(0, current - 1) }),
     });
     await loadTasks();
@@ -102,7 +125,7 @@ export function PomodoroApp() {
   async function handleMoveToActive(taskId: number) {
     await fetch(`/api/tasks/${taskId}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: roomHeaders,
       body: JSON.stringify({ status: "pending" }),
     });
     await loadTasks();
@@ -113,7 +136,7 @@ export function PomodoroApp() {
   // ─── End of day ───────────────────────────
   async function handleEndDay() {
     setEndingDay(true);
-    await fetch("/api/backlog", { method: "POST" });
+    await fetch("/api/backlog", { method: "POST", headers: roomHeaders });
     await Promise.all([loadTasks(), loadBacklog()]);
     setEndingDay(false);
     setPanel("backlog");
@@ -124,7 +147,7 @@ export function PomodoroApp() {
   async function handleInterrupt(title: string) {
     await fetch("/api/interrupt", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: roomHeaders,
       body: JSON.stringify({ title }),
     });
     window.location.reload();
@@ -142,6 +165,9 @@ export function PomodoroApp() {
     (t) => t.status === "pending" || t.status === "in-progress"
   ).length;
 
+  const currentTask =
+    tasks.find((t) => t.id === timerState.currentTaskId) ?? null;
+
   return (
     <div className="min-h-screen bg-[#111] text-white flex flex-col">
       {/* Header */}
@@ -149,10 +175,20 @@ export function PomodoroApp() {
         <h1 className="text-lg font-semibold text-zinc-200">
           🍅 Pomodoro Autopilot
         </h1>
-        <span className="text-xs text-zinc-600">
-          {timerState.completedPomodoros > 0 &&
-            `${timerState.completedPomodoros} 🍅 วันนี้`}
-        </span>
+        <div className="flex items-center gap-3">
+          {timerState.completedPomodoros > 0 && (
+            <span className="text-xs text-zinc-600">
+              {timerState.completedPomodoros} 🍅 วันนี้
+            </span>
+          )}
+          <RoomBadge
+            roomId={roomId}
+            onChangeRoom={setRoom}
+            onCreateRoom={createRoom}
+            onRenameRoom={renameRoom}
+            onCheckRoom={checkRoom}
+          />
+        </div>
       </header>
 
       {/* Main layout */}
@@ -195,6 +231,8 @@ export function PomodoroApp() {
                 onSelect={handleSelectAndStart}
                 onPriorityUp={handlePriorityUp}
                 onPriorityDown={handlePriorityDown}
+                onEdit={handleEditTask}
+                onDelete={handleDeleteTask}
                 onEndDay={handleEndDay}
                 endingDay={endingDay}
               />
@@ -225,6 +263,7 @@ export function PomodoroApp() {
             remainingMs={remainingMs}
             totalMs={totalMs}
             loading={loading}
+            currentTaskTitle={currentTask?.title ?? null}
             onStart={() => handleStart()}
             onPause={handlePause}
             onResume={handleResume}

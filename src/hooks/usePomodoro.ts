@@ -27,11 +27,12 @@ interface UsePomodoroReturn {
 }
 
 async function callSessionAPI(
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
+  headers: Record<string, string>
 ): Promise<TimerState> {
   const res = await fetch("/api/session", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(body),
   });
   return res.json() as Promise<TimerState>;
@@ -47,7 +48,8 @@ function notify(title: string, body: string) {
 // ─── Hook ────────────────────────────────────
 
 export function usePomodoro(
-  durations?: Partial<DurationConfig>
+  durations?: Partial<DurationConfig>,
+  roomHeaders: Record<string, string> = { "Content-Type": "application/json" }
 ): UsePomodoroReturn {
   const [timerState, setTimerState] = useState<TimerState>(INITIAL_STATE);
   const [loading, setLoading] = useState(true);
@@ -55,11 +57,16 @@ export function usePomodoro(
 
   const timerStateRef = useRef<TimerState>(INITIAL_STATE);
   const durationsRef = useRef(durations);
+  const headersRef = useRef(roomHeaders);
   useEffect(() => { durationsRef.current = durations; }, [durations]);
+  useEffect(() => { headersRef.current = roomHeaders; }, [roomHeaders]);
 
-  // ─── Load session on mount ─────────────────
+  // ─── Load session เมื่อ room พร้อม ─────────
+  // รอจน roomHeaders มี X-Room-Id ก่อน ไม่งั้นจะโหลด session ของห้อง "default"
+  // (ตอน mount แรก roomId ยังเป็น "" → header ยังไม่มี) และ re-run เมื่อ room เปลี่ยน
   useEffect(() => {
-    fetch("/api/session")
+    if (!roomHeaders["X-Room-Id"]) return;
+    fetch("/api/session", { headers: roomHeaders })
       .then((r) => r.json() as Promise<TimerState>)
       .then((state) => {
         setTimerState(state);
@@ -71,7 +78,10 @@ export function usePomodoro(
         }
       })
       .finally(() => setLoading(false));
+  }, [roomHeaders]);
 
+  // ─── ขอ permission แจ้งเตือน (ครั้งเดียวตอน mount) ─
+  useEffect(() => {
     if (typeof window !== "undefined" && "Notification" in window) {
       if (Notification.permission === "default") {
         Notification.requestPermission();
@@ -97,7 +107,7 @@ export function usePomodoro(
         const body = state.state === "WORK" ? "เริ่ม Break ได้เลย" : "พร้อมทำงานรอบใหม่";
         notify(label, body);
 
-        callSessionAPI({ action: "expire", durations: durationsRef.current }).then((next) => {
+        callSessionAPI({ action: "expire", durations: durationsRef.current }, headersRef.current).then((next) => {
           setTimerState(next);
           timerStateRef.current = next;
           setRemainingMs(next.endsAt ? computeRemaining(next.endsAt, Date.now()) : 0);
@@ -124,7 +134,7 @@ export function usePomodoro(
       const nowMs = Date.now();
       if (isExpired(state.endsAt, nowMs)) {
         playAlarm(state.state === "WORK" ? "work" : "break");
-        callSessionAPI({ action: "expire", durations: durationsRef.current }).then((next) => {
+        callSessionAPI({ action: "expire", durations: durationsRef.current }, headersRef.current).then((next) => {
           setTimerState(next);
           timerStateRef.current = next;
           setRemainingMs(next.endsAt ? computeRemaining(next.endsAt, Date.now()) : 0);
@@ -145,20 +155,20 @@ export function usePomodoro(
       action: "start",
       taskId,
       durations: durationsRef.current,
-    });
+    }, headersRef.current);
     setTimerState(next);
     timerStateRef.current = next;
     setRemainingMs(next.endsAt ? computeRemaining(next.endsAt, Date.now()) : 0);
   }, []);
 
   const handlePause = useCallback(async () => {
-    const next = await callSessionAPI({ action: "pause" });
+    const next = await callSessionAPI({ action: "pause" }, headersRef.current);
     setTimerState(next);
     timerStateRef.current = next;
   }, []);
 
   const handleResume = useCallback(async () => {
-    const next = await callSessionAPI({ action: "resume" });
+    const next = await callSessionAPI({ action: "resume" }, headersRef.current);
     setTimerState(next);
     timerStateRef.current = next;
     setRemainingMs(next.endsAt ? computeRemaining(next.endsAt, Date.now()) : 0);
@@ -168,7 +178,7 @@ export function usePomodoro(
     const next = await callSessionAPI({
       action: "restart",
       durations: durationsRef.current,
-    });
+    }, headersRef.current);
     setTimerState(next);
     timerStateRef.current = next;
     setRemainingMs(next.endsAt ? computeRemaining(next.endsAt, Date.now()) : 0);
