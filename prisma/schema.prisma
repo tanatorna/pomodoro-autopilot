@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -14,6 +12,7 @@ datasource db {
 
 model Task {
   id                  Int           @id @default(autoincrement())
+  roomId              String        @default("default")
   title               String
   priority            Int           @default(0)
   estimatedPomodoros  Int           @default(1)
@@ -22,25 +21,33 @@ model Task {
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
   slots               ScheduleSlot[]
+
+  @@index([roomId])
 }
 
 model Session {
   id                  Int       @id @default(autoincrement())
+  roomId              String    @default("default")
   state               String    @default("IDLE") // IDLE | WORK | SHORT_BREAK | LONG_BREAK | PAUSED
   endsAt              DateTime?
-  remainingMs         Int?      // เก็บไว้เฉพาะตอน PAUSED
-  origin              String?   // PAUSED จำไว้ว่ามาจาก WORK หรือ BREAK
+  remainingMs         Int?
+  origin              String?
   completedPomodoros  Int       @default(0)
   currentTaskId       Int?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
+
+  @@index([roomId])
 }
 
 model ScheduleSlot {
   id         Int      @id @default(autoincrement())
+  roomId     String   @default("default")
   taskId     Int
   task       Task     @relation(fields: [taskId], references: [id])
   slotIndex  Int
   status     String   @default("pending") // pending | completed | voided
   createdAt  DateTime @default(now())
+
+  @@index([roomId])
 }

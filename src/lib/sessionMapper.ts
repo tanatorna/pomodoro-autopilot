@@ -21,7 +21,7 @@ export function dbToTimerState(session: Session): TimerState {
 /** แปลง TimerState → object ที่ Prisma เขียนลง DB ได้ */
 export function timerStateToDb(
   ts: TimerState
-): Omit<Session, "id" | "createdAt" | "updatedAt"> {
+): Omit<Session, "id" | "createdAt" | "updatedAt" | "roomId"> {
   return {
     state: ts.state,
     endsAt: ts.endsAt ? new Date(ts.endsAt) : null,

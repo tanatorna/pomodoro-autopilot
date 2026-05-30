@@ -1,20 +1,17 @@
-// GET  /api/tasks  — คืน task ทั้งหมด (ไม่รวม backlog)
-// POST /api/tasks  — สร้าง task ใหม่
-//   body: { title, estimatedPomodoros?, priority?, status? }
-//   status default = "pending" (วันนี้)
-//   status = "backlog" (park ไว้ก่อน)
-
 import { prisma } from "@/lib/prisma";
+import { getRoomId } from "@/lib/room";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const roomId = getRoomId(request);
   const tasks = await prisma.task.findMany({
-    where: { status: { not: "backlog" } },
+    where: { roomId, status: { not: "backlog" } },
     orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
   });
   return Response.json(tasks);
 }
 
 export async function POST(request: Request) {
+  const roomId = getRoomId(request);
   const body = (await request.json()) as {
     title?: string;
     priority?: number;
@@ -28,6 +25,7 @@ export async function POST(request: Request) {
 
   const task = await prisma.task.create({
     data: {
+      roomId,
       title: body.title.trim(),
       priority: body.priority ?? 0,
       estimatedPomodoros: body.estimatedPomodoros ?? 1,
