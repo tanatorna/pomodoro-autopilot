@@ -5,7 +5,7 @@
 > **สถานะ:** Flagship project (แทนที่ expense tracker) — ทำใน **Week 5–6** ของ 12-Week SDET Plan
 > **เป้าหมายซ้อน:** Portfolio piece + ใช้ตอบสัมภาษณ์ SDET ("PM ที่เขียน production-grade automated test ได้")
 >
-> **อัปเดตล่าสุด (2026-05-30):** Product เสร็จ **Slice 1–4 ครบ** + enhancements (เสียงเตือน, ตั้งเวลาเองได้, ย้าย DB ไป Turso, รวมแท็บ) · ฟีเจอร์ **Room** (แยกข้อมูลต่อผู้ใช้/แชร์ห้อง) อยู่ระหว่างทำ — **ยังไม่ commit + มี bug ค้าง 2 จุด** (ดู Build Log ใน Stage 4) · **Phase 2 QA ยังไม่เริ่ม**
+> **อัปเดตล่าสุด (2026-05-31):** 🚀 **Deploy ขึ้น prod แล้ว** (Vercel + Turso) — Product เสร็จ Slice 1–4 + enhancements · ฟีเจอร์ **Room** ครบ (แยกข้อมูล/แชร์/สร้าง/แก้รหัส/ลบ) · **Login (Google OAuth, optional)** ใช้งานได้จริงบน prod · **UI redesign** เป็นธีม deep-cozy-dusk + responsive (มือถือใช้ได้แล้ว) · ผ่านสมรภูมิ deploy (Prisma generate, Turso migrate, OAuth setup) · **Phase 2 QA ยังไม่เริ่ม ← งานหลักที่เหลือ**
 
 ---
 
@@ -264,13 +264,19 @@ Slice 4 ✅ Backlog + End-of-day summary      → api/backlog, BacklogView, DayS
 | `af43c01`, `e2ce31f` | UI ตั้งเวลา: slider → number input + ปุ่ม ± (step=1) |
 | `59a7c2b` | รวมแท็บ Tasks + Schedule → แท็บเดียว (4→3 แท็บ, `ScheduleMain`) |
 | `5e3ef05` | ช่อง estimated pomodoros + แยก intent "เพิ่ม task วันนี้" vs "เก็บเข้า backlog" |
-| **(commit `f7745e3`..`5940208`, push prod แล้ว)** | ฟีเจอร์ **Room**: แยกข้อมูลต่อผู้ใช้ผ่าน `X-Room-Id` + แชร์ผ่านลิงก์ + สร้าง/แก้รหัส/เข้าห้อง/**ลบห้อง** + เช็ค code ซ้ำ (`lib/room`, `useRoom`, `RoomBadge`, `api/room`, roomId ใน schema/ทุก API + `@@index`) · UX: แก้ชื่อ/ลบ task, focus คงหลัง Enter, timer โชว์ task ที่ทำอยู่ |
+| `f7745e3`..`5940208` | ฟีเจอร์ **Room**: แยกข้อมูลต่อผู้ใช้ผ่าน `X-Room-Id` + แชร์ผ่านลิงก์ + สร้าง/แก้รหัส/เข้าห้อง/**ลบห้อง** + เช็ค code ซ้ำ (`lib/room`, `useRoom`, `RoomBadge`, `api/room`, roomId ใน schema/ทุก API + `@@index`) · UX: แก้ชื่อ/ลบ task, focus คงหลัง Enter, timer โชว์ task ที่ทำอยู่ |
+| `c809c7b` | **Login (optional Google sign-in)** — Auth.js v5 + Google + Prisma adapter (`auth.ts`, `api/auth/*`, `api/room/claim`, `Providers`, `AccountButton`) + `User`/`Account` models · claim ห้อง + sync ข้ามเครื่อง |
+| `314dd66`, `8ac37e6` | **Deploy fixes:** `prisma generate` ใน build/postinstall (แก้ Vercel build) + สคริปต์ migrate Turso ผ่าน libsql (`scripts/migrate-turso.mjs`) |
+| `e240b61` | **Fix:** เปลี่ยนห้องขณะ login → บัญชีตามไปห้องใหม่ ไม่เด้งกลับ (rename อัปเดต `User.roomId`; create/join/delete เรียก claim) |
+| `65bc18a` | **UI redesign** — ธีม deep-cozy-dusk (gradient พลบค่ำ + glassmorphism) + **responsive** (มือถือ stack/timer บน, desktop sidebar+timer กลาง) |
 
 > **Build Log — ฟีเจอร์ Room (commit + push prod แล้ว · 2026-05-30):**
 > - ✅ **แก้ bug 3 จุด:** (1) *infinite fetch loop* → `useMemo` ครอบ `roomHeaders`  (2) *session โหลดผิดห้อง* → effect รอจน `roomId` พร้อม  (3) *noti แจ้งเตือนเด้งรัวๆ* (ticker ยิง expire ซ้ำตอน API ช้า) → in-flight guard ใน `triggerExpire` (พิสูจน์: เด้ง 1 ครั้ง เดิม ~5)
 > - ✅ **เพิ่มฟีเจอร์:** สร้างห้องใหม่ · แก้รหัสห้อง (ย้ายข้อมูล) + เช็ค code ซ้ำ live · **ลบห้อง (Stretch A — confirm 2 ชั้น → ห้องเปล่าใหม่)** · แก้ชื่อ/ลบ task · กัน task ที่โฟกัสอยู่ไม่ให้ลบ · focus คงที่ช่องหลัง Enter · timer โชว์ชื่อ task
 > - ✅ **แก้ bug ที่เจอตอนทดสอบ:** DELETE task ติด FK `ScheduleSlot` (`ON DELETE RESTRICT`) → ลบ slot ก่อน · เพิ่ม `@@index([roomId])` 3 ตาราง
-> - verify ผ่าน browser (network ไม่ loop, noti 1 ครั้ง, ลบห้องทำงาน) + `tsc` + `build` เขียว
+> - ✅ **แก้ bug หลัง login:** เปลี่ยนห้องขณะ login แล้วเด้งกลับห้องเดิม → sync `User.roomId` ทุกการเปลี่ยนห้อง (`e240b61`)
+> - ✅ **UI redesign + responsive** (`65bc18a`) — มือถือเดิม timer หลุดจอใช้ไม่ได้ → stack + ธีม dusk/glass · verify ทั้ง mobile + desktop
+> - verify ผ่าน browser ทุกฟีเจอร์ + `tsc` + `build` เขียว · **ขึ้น prod จริงแล้ว**
 
 **Room — Known Limitations & Stretch Goals** (ตัดสินใจ 2026-05-30)
 
@@ -288,8 +294,22 @@ Slice 4 ✅ Backlog + End-of-day summary      → api/backlog, BacklogView, DayS
 |---|---|
 | **รูปแบบที่เลือก** | **Optional sign-in** — แอปยังใช้แบบ anonymous + room code ได้ตามเดิม (zero-friction, ไม่มีกำแพง signup) แต่ "sign in เพื่อ claim ห้อง" ได้ → เข้าถึงข้อมูลจากเครื่องไหนก็ได้โดยไม่ต้องจำ code |
 | **เหตุผล** | ไม่ over-engineer (ข้อมูล pomodoro ไม่ sensitive) · รักษา UX เปิด-แล้วใช้ · ได้ identity ถาวรเมื่อต้องการ · **คุณค่าต่อ portfolio/SDET สูง** (auth = ขุมทรัพย์การเทสต์: login/logout, protected route, token expiry, negative + security tests) |
-| **สถานะ** | ✅ build + verify (anonymous flow ไม่พัง, `providers:["google"]`, build เขียว) · กลไก: Auth.js v5 + Google + Prisma adapter (JWT strategy → ไม่ต้องมี Auth Session table, เลี่ยงชน `Session` ของ pomodoro) · `User.roomId` = ห้องที่ claim · ปุ่ม Sign in/out + claim ห้อง + auto-switch ไปห้องบัญชี |
-| **การบ้านก่อนใช้จริง** | สร้าง Google OAuth client (redirect `…/api/auth/callback/google`) + ใส่ `AUTH_GOOGLE_ID/SECRET` ใน `.env` (local) และ Vercel env (`AUTH_SECRET`+creds) · รัน `prisma migrate deploy` บน Turso (สร้าง User/Account) · ⚠️ prod ต้องตั้ง env ก่อนไม่งั้น `/api/auth/*` error |
+| **สถานะ** | ✅ **ใช้งานได้จริงบน prod** (login Google สำเร็จ, claim ห้อง + sync ข้ามเครื่องทำงาน) · กลไก: Auth.js v5 + Google + Prisma adapter (JWT strategy → ไม่ต้องมี Auth Session table, เลี่ยงชน `Session` ของ pomodoro) · `User.roomId` = ห้องที่ claim · ปุ่ม Sign in/out + claim ห้อง + auto-switch ไปห้องบัญชี |
+| **Setup ที่ทำไปแล้ว** | สร้าง Google OAuth client (External, Testing mode) + redirect URIs (localhost + prod) · ตั้ง 5 env ใน Vercel (`AUTH_SECRET`, `AUTH_GOOGLE_ID/SECRET`, `DATABASE_URL`, `TURSO_AUTH_TOKEN`) · migrate Turso ผ่านสคริปต์ |
+| **TODO ความปลอดภัย** | ⚠️ reset Google client secret + Turso token (เคยโผล่ระหว่าง setup) · Google OAuth ยัง Testing mode (login ได้เฉพาะ test users — publish ทีหลังถ้าจะเปิดสาธารณะ) |
+
+**Deploy / Ops — บทเรียนจาก deploy จริง (2026-05-31)** — รวมปัญหาที่เจอตอนขึ้น Vercel + Turso (story ดีตอนสัมภาษณ์ "debug production")
+
+| ปัญหา | อาการ | วิธีแก้ |
+|---|---|---|
+| Prisma client ไม่ถูก generate บน Vercel | `Module not found: @/generated/prisma/client` ตอน build | `src/generated/prisma` ถูก gitignore → เพิ่ม `prisma generate` ใน `build` + `postinstall` |
+| Prisma migrate ใช้กับ Turso ไม่ได้ | `P1013: scheme ... not recognized` (libsql://) | CLI ไม่รองรับ libsql + config v7 ไม่มีช่อง adapter → apply schema ผ่าน `@libsql/client` (`scripts/migrate-turso.mjs`, idempotent) |
+| `DATABASE_URL` ไม่ได้ตั้งใน Vercel | `Unable to open ./dev.db: 14` (fallback ไป SQLite local บน serverless) | ตั้ง `DATABASE_URL` (libsql) + `TURSO_AUTH_TOKEN` ใน Vercel env → ทุกฟีเจอร์ DB กลับมาทำงาน |
+| Auth callback error | "problem with the server configuration" | ต้องตั้ง `AUTH_SECRET` + Google creds ใน Vercel (ไม่ใช่แค่ local) + redeploy |
+| Google `redirect_uri_mismatch` | Error 400 ตอนเลือกบัญชี | ใส่ redirect URI ให้ตรงเป๊ะใน **Authorized redirect URIs** (ไม่ใช่ JavaScript origins), ห้าม `//`/`/` ท้าย |
+
+> **Env ที่ prod ต้องมี (5 ตัว):** `AUTH_SECRET` · `AUTH_GOOGLE_ID` · `AUTH_GOOGLE_SECRET` · `DATABASE_URL` (libsql) · `TURSO_AUTH_TOKEN`
+> **บทเรียนหลัก:** local เขียว ≠ prod เขียว — env, build step, และ DB migration ของ prod เป็นคนละชุดที่ต้องจัดการแยก
 
 **Phase 2 — QA (Top-down pyramid)** — ⬜ **ยังไม่เริ่ม** (test deps ยังไม่ถูกติดตั้งใน `package.json`)
 ```
@@ -303,8 +323,8 @@ GitHub Actions CI + Allure report
 ### Stage 5 — QA Execution  ·  *Notion + FigJam*
 Test Execution Report · Bug Reports (severity/STR/expected-vs-actual) · Regression · **Exploratory** · **Performance (เบื้องต้น)** · **Negative** · Cross-browser matrix · Test Coverage map · Traceability update
 
-### Stage 6 — Deploy  ·  *Vercel*
-CI เขียวครบ + Exit criteria ผ่าน → deploy · Smoke test บน production · Release Notes (รวม Known Limitations)
+### Stage 6 — Deploy  ·  *Vercel + Turso*
+✅ **Deploy แล้ว (product-first)** — ขึ้น prod ก่อน QA ตามแนวทาง build-product-first · ดูปัญหา/วิธีแก้ใน **Deploy / Ops** (Stage 4) · *ยังเหลือ: CI เขียว + Exit criteria + Release Notes ทำในช่วง QA*
 
 ### Stage 7 — Feedback & Iterate
 Usage Log (Pomodoro stats) · Retrospective · Backlog Grooming · Next Iteration Planning (กลับ Stage 1)
@@ -351,8 +371,8 @@ Project Overview · QA Artifacts Summary · Skills Demonstrated · Lessons Learn
 - [ ] Cross-browser (Chromium/Firefox/WebKit) ผ่าน
 - [ ] README + Known Limitations + Roadmap (Line/Notion)
 - [ ] Traceability matrix: Requirement → Test → Bug → Fix
-- [ ] Deploy บน Vercel + smoke test ผ่าน
+- [x] **Deploy บน Vercel + Turso + smoke test** (login/room/timer ใช้งานได้บน prod) ✅
 
 ---
 
-*Next (จากสถานะจริง 2026-05-30): ปิดงานฟีเจอร์ Room — แก้ bug 2 จุด (infinite loop + session ผิดห้อง) → commit → แล้วเริ่ม **Phase 2 QA** (Manual → E2E → Integration → Unit)*
+*Next (จากสถานะจริง 2026-05-31): Product + Room + Login + Deploy + UI redesign เสร็จและขึ้น prod แล้ว → เหลือ **Phase 2 QA** (Manual → E2E → Integration → Unit) ซึ่งเป็นพระเอกของ portfolio · งานเล็กค้าง: reset secrets, polish glass ส่วนที่เหลือ, (option) ใส่รูป bg จริง*
