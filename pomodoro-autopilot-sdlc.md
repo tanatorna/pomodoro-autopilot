@@ -264,13 +264,13 @@ Slice 4 ✅ Backlog + End-of-day summary      → api/backlog, BacklogView, DayS
 | `af43c01`, `e2ce31f` | UI ตั้งเวลา: slider → number input + ปุ่ม ± (step=1) |
 | `59a7c2b` | รวมแท็บ Tasks + Schedule → แท็บเดียว (4→3 แท็บ, `ScheduleMain`) |
 | `5e3ef05` | ช่อง estimated pomodoros + แยก intent "เพิ่ม task วันนี้" vs "เก็บเข้า backlog" |
-| **(working tree — ยังไม่ commit)** | ฟีเจอร์ **Room**: แยกข้อมูลต่อผู้ใช้ผ่าน `X-Room-Id` + แชร์ผ่านลิงก์ + สร้าง/แก้รหัส/เข้าห้อง + เช็ค code ซ้ำ (`lib/room`, `useRoom`, `RoomBadge`, `api/room`, roomId ใน schema/ทุก API + `@@index`) · UX: แก้ชื่อ/ลบ task, focus คงหลัง Enter, timer โชว์ task ที่ทำอยู่ |
+| **(commit `f7745e3`..`5940208`, push prod แล้ว)** | ฟีเจอร์ **Room**: แยกข้อมูลต่อผู้ใช้ผ่าน `X-Room-Id` + แชร์ผ่านลิงก์ + สร้าง/แก้รหัส/เข้าห้อง/**ลบห้อง** + เช็ค code ซ้ำ (`lib/room`, `useRoom`, `RoomBadge`, `api/room`, roomId ใน schema/ทุก API + `@@index`) · UX: แก้ชื่อ/ลบ task, focus คงหลัง Enter, timer โชว์ task ที่ทำอยู่ |
 
-> **Build Log — ฟีเจอร์ Room (working tree, ยังไม่ commit · 2026-05-30):**
-> - ✅ **แก้ bug แล้ว 2 จุด:** (1) *infinite fetch loop* → `useMemo` ครอบ `roomHeaders`  (2) *session โหลดผิดห้อง* → effect รอจน `roomId` พร้อมก่อนค่อยโหลด
-> - ✅ **เพิ่มฟีเจอร์:** สร้างห้องใหม่ · แก้รหัสห้อง (ย้ายข้อมูลให้) + เช็ค code ซ้ำ live (`/api/room`) · แก้ชื่อ/ลบ task · กัน task ที่กำลังโฟกัสไม่ให้ลบ · focus คงอยู่ที่ช่องหลังกด Enter · timer โชว์ชื่อ task ที่กำลังทำ
-> - ✅ **แก้ bug ที่เจอตอนทดสอบ:** DELETE task ติด FK ของ `ScheduleSlot` (`ON DELETE RESTRICT`) → ลบ slot ก่อนลบ task · เพิ่ม `@@index([roomId])` ครบ 3 ตาราง
-> - verify ผ่าน browser (network ไม่ loop, ทุกฟีเจอร์ทำงาน) + `tsc` + `build` เขียว
+> **Build Log — ฟีเจอร์ Room (commit + push prod แล้ว · 2026-05-30):**
+> - ✅ **แก้ bug 3 จุด:** (1) *infinite fetch loop* → `useMemo` ครอบ `roomHeaders`  (2) *session โหลดผิดห้อง* → effect รอจน `roomId` พร้อม  (3) *noti แจ้งเตือนเด้งรัวๆ* (ticker ยิง expire ซ้ำตอน API ช้า) → in-flight guard ใน `triggerExpire` (พิสูจน์: เด้ง 1 ครั้ง เดิม ~5)
+> - ✅ **เพิ่มฟีเจอร์:** สร้างห้องใหม่ · แก้รหัสห้อง (ย้ายข้อมูล) + เช็ค code ซ้ำ live · **ลบห้อง (Stretch A — confirm 2 ชั้น → ห้องเปล่าใหม่)** · แก้ชื่อ/ลบ task · กัน task ที่โฟกัสอยู่ไม่ให้ลบ · focus คงที่ช่องหลัง Enter · timer โชว์ชื่อ task
+> - ✅ **แก้ bug ที่เจอตอนทดสอบ:** DELETE task ติด FK `ScheduleSlot` (`ON DELETE RESTRICT`) → ลบ slot ก่อน · เพิ่ม `@@index([roomId])` 3 ตาราง
+> - verify ผ่าน browser (network ไม่ loop, noti 1 ครั้ง, ลบห้องทำงาน) + `tsc` + `build` เขียว
 
 **Room — Known Limitations & Stretch Goals** (ตัดสินใจ 2026-05-30)
 
@@ -278,9 +278,17 @@ Slice 4 ✅ Backlog + End-of-day summary      → api/backlog, BacklogView, DayS
 |---|---|
 | **ห้องร้างไม่ถูกลบอัตโนมัติ** | **Known Limitation (รับไว้)** — ห้องที่เคยมีข้อมูลแล้วเลิกใช้จะค้างใน DB · ห้องที่เปิดแต่ไม่เคยมี action = ว่างจริง ไม่กินที่ (สร้างแบบ lazy) · ขนาด ~KB/ห้อง จึงยังไม่กระทบ scope flagship → **เลือกแนวทาง A: ไม่ทำ auto-cleanup ตอนนี้** |
 | **Access เป็น capability-based** | ใครรู้ code ก็เข้าได้ ไม่มี auth — ตั้งใจให้แชร์ง่าย · ระวังอย่าตั้ง code สั้น/เดาง่าย (document ใน README) |
-| **Stretch A (near-term, แนะนำ): ปุ่ม "ลบห้องนี้" ให้ user กดเอง** | เจ้าของห้องรู้ดีที่สุดว่าเลิกใช้เมื่อไหร่ → ลบเองได้ตรงจุด **ไม่ต้องมี background job** · เงื่อนไข: ต้อง confirm (กู้ไม่ได้) + เตือนกรณีห้องที่แชร์กับคนอื่น |
-| **Stretch A — ลบแล้วไปไหนต่อ (ตัดสินใจ)** | **ลบเสร็จ → ห้องเปล่าใหม่เสมอ · ไม่กลับห้องเก่า ไม่มี room-history/recent-rooms** เพราะ user จำ code เก่าไม่ได้อยู่แล้ว + action ที่ทำลายข้อมูลต้องชัดเจน ไม่เด้งเข้าข้อมูลห้องอื่นแบบเซอร์ไพรส์ · โมเดล "โน้ตใช้เสร็จฉีกทิ้ง" → **ทางเดียวที่จะเก็บ/กลับเข้าห้องคือ copy link เก็บไว้** (เน้นความสำคัญของ confirm) |
+| **Stretch A: ปุ่ม "ลบห้องนี้"** — ✅ **ทำแล้ว (commit `5940208`)** | เจ้าของห้องลบเองได้ตรงจุด ไม่ต้องมี background job · `DELETE /api/room` + confirm 2 ชั้น (เตือนกู้ไม่ได้ + เตือนห้องแชร์) |
+| **Stretch A — ลบแล้วไปไหนต่อ** — ✅ **ทำตามนี้** | **ลบเสร็จ → ห้องเปล่าใหม่เสมอ · ไม่กลับห้องเก่า ไม่มี room-history** เพราะ user จำ code เก่าไม่ได้ + action ทำลายข้อมูลต้องชัดเจน · โมเดล "โน้ตใช้เสร็จฉีกทิ้ง" → ทางเดียวที่เก็บห้องไว้คือ copy link |
 | **Stretch B (Week 7): TTL auto-cleanup** | cron ลบห้องที่ `Session.updatedAt` เงียบเกิน N วัน · logic "ห้อง stale?" เป็น **pure function (unit-test ได้)** + cleanup endpoint (**integration-test ได้**) — ตรงกับ Week 7 stretch ของแผนพอดี |
+
+**Auth / Login — Optional Sign-in** (ตัดสินใจ 2026-05-30 · 🚧 กำลังทำ)
+
+| หัวข้อ | แนวทาง |
+|---|---|
+| **รูปแบบที่เลือก** | **Optional sign-in** — แอปยังใช้แบบ anonymous + room code ได้ตามเดิม (zero-friction, ไม่มีกำแพง signup) แต่ "sign in เพื่อ claim ห้อง" ได้ → เข้าถึงข้อมูลจากเครื่องไหนก็ได้โดยไม่ต้องจำ code |
+| **เหตุผล** | ไม่ over-engineer (ข้อมูล pomodoro ไม่ sensitive) · รักษา UX เปิด-แล้วใช้ · ได้ identity ถาวรเมื่อต้องการ · **คุณค่าต่อ portfolio/SDET สูง** (auth = ขุมทรัพย์การเทสต์: login/logout, protected route, token expiry, negative + security tests) |
+| **สถานะ** | กำลัง implement — กลไก auth ให้เลือก (built-in credential vs OAuth provider); OAuth ต้องมี external secret จากผู้ใช้ |
 
 **Phase 2 — QA (Top-down pyramid)** — ⬜ **ยังไม่เริ่ม** (test deps ยังไม่ถูกติดตั้งใน `package.json`)
 ```
