@@ -3,29 +3,17 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Task } from "@/generated/prisma/client";
 import { usePomodoro } from "@/hooks/usePomodoro";
-import { Timer } from "./Timer";
-import { BrainDump } from "./BrainDump";
-import { TaskList } from "./TaskList";
-import { ScheduleView } from "./ScheduleView";
-import { BacklogView } from "./BacklogView";
-import { DaySummary } from "./DaySummary";
-import { InterruptButton } from "./InterruptButton";
-import { SettingsPanel } from "./SettingsPanel";
-import { DURATIONS } from "@/engine";
-import type { TimerState } from "@/engine";
 import { useSettings } from "@/hooks/useSettings";
+import { Timer } from "./Timer";
+import { ScheduleMain } from "./ScheduleMain";
+import { BacklogView } from "./BacklogView";
+import { SettingsPanel } from "./SettingsPanel";
+import { InterruptButton } from "./InterruptButton";
+import type { TimerState } from "@/engine";
 
-interface SlotWithTask {
-  id: number;
-  slotIndex: number;
-  status: string;
-  task: Task;
-}
-
-type SidePanel = "tasks" | "schedule" | "backlog" | "settings";
+type SidePanel = "schedule" | "backlog" | "settings";
 
 const PANEL_LABELS: Record<SidePanel, string> = {
-  tasks: "Tasks",
   schedule: "Schedule",
   backlog: "Backlog",
   settings: "⚙️",
@@ -39,10 +27,8 @@ export function PomodoroApp() {
   } = usePomodoro(durations);
 
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [slots, setSlots] = useState<SlotWithTask[]>([]);
   const [backlog, setBacklog] = useState<Task[]>([]);
-  const [panel, setPanel] = useState<SidePanel>("tasks");
-  const [generating, setGenerating] = useState(false);
+  const [panel, setPanel] = useState<SidePanel>("schedule");
   const [endingDay, setEndingDay] = useState(false);
 
   // ─── Loaders ──────────────────────────────
@@ -51,21 +37,20 @@ export function PomodoroApp() {
     setTasks((await res.json()) as Task[]);
   }, []);
 
-  const loadSchedule = useCallback(async () => {
-    const res = await fetch("/api/schedule");
-    setSlots((await res.json()) as SlotWithTask[]);
-  }, []);
-
   const loadBacklog = useCallback(async () => {
     const res = await fetch("/api/backlog");
     setBacklog((await res.json()) as Task[]);
   }, []);
 
+  // auto-generate schedule (silent, ไม่ block UI)
+  const generateSchedule = useCallback(async () => {
+    await fetch("/api/schedule", { method: "POST" });
+  }, []);
+
   useEffect(() => {
     void loadTasks();
-    void loadSchedule();
     void loadBacklog();
-  }, [loadTasks, loadSchedule, loadBacklog]);
+  }, [loadTasks, loadBacklog]);
 
   // ─── Task actions ─────────────────────────
   async function handleAddTask(title: string) {
@@ -75,19 +60,11 @@ export function PomodoroApp() {
       body: JSON.stringify({ title }),
     });
     await loadTasks();
+    await generateSchedule(); // auto-generate ทันทีที่เพิ่ม task
   }
 
   async function handleSelectAndStart(taskId: number) {
     await handleStart(taskId);
-  }
-
-  // ─── Schedule actions ─────────────────────
-  async function handleGenerate() {
-    setGenerating(true);
-    await fetch("/api/schedule", { method: "POST" });
-    await loadSchedule();
-    setGenerating(false);
-    setPanel("schedule");
   }
 
   async function handlePriorityUp(taskId: number, current: number) {
@@ -97,8 +74,7 @@ export function PomodoroApp() {
       body: JSON.stringify({ priority: current + 1 }),
     });
     await loadTasks();
-    await fetch("/api/schedule", { method: "POST" });
-    await loadSchedule();
+    await generateSchedule();
   }
 
   async function handlePriorityDown(taskId: number, current: number) {
@@ -108,11 +84,10 @@ export function PomodoroApp() {
       body: JSON.stringify({ priority: Math.max(0, current - 1) }),
     });
     await loadTasks();
-    await fetch("/api/schedule", { method: "POST" });
-    await loadSchedule();
+    await generateSchedule();
   }
 
-  // ─── Backlog actions ──────────────────────
+  // ─── Backlog ──────────────────────────────
   async function handleMoveToActive(taskId: number) {
     await fetch(`/api/tasks/${taskId}`, {
       method: "PATCH",
@@ -121,13 +96,14 @@ export function PomodoroApp() {
     });
     await loadTasks();
     await loadBacklog();
+    await generateSchedule();
   }
 
   // ─── End of day ───────────────────────────
   async function handleEndDay() {
     setEndingDay(true);
     await fetch("/api/backlog", { method: "POST" });
-    await Promise.all([loadTasks(), loadSchedule(), loadBacklog()]);
+    await Promise.all([loadTasks(), loadBacklog()]);
     setEndingDay(false);
     setPanel("backlog");
     window.location.reload();
@@ -144,16 +120,12 @@ export function PomodoroApp() {
   }
 
   // ─── Derived ──────────────────────────────
-  // ใช้ durations จาก settings แทน DURATIONS default
   const totalMs =
     timerState.state === "SHORT_BREAK"
       ? durations.SHORT_BREAK
       : timerState.state === "LONG_BREAK"
         ? durations.LONG_BREAK
         : durations.WORK;
-
-  // suppress unused import warning
-  void DURATIONS;
 
   const pendingCount = tasks.filter(
     (t) => t.status === "pending" || t.status === "in-progress"
@@ -162,7 +134,7 @@ export function PomodoroApp() {
   return (
     <div className="min-h-screen bg-[#111] text-white flex flex-col">
       {/* Header */}
-      <header className="px-6 py-4 border-b border-zinc-800 flex items-center justify-between">
+      <header className="px-6 py-4 border-b border-zinc-800 flex items-center justify-between shrink-0">
         <h1 className="text-lg font-semibold text-zinc-200">
           🍅 Pomodoro Autopilot
         </h1>
@@ -176,11 +148,11 @@ export function PomodoroApp() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* Left sidebar */}
-        <aside className="w-80 border-r border-zinc-800 flex flex-col overflow-hidden">
+        <aside className="w-80 border-r border-zinc-800 flex flex-col overflow-hidden shrink-0">
 
           {/* Tab switcher */}
           <div className="flex border-b border-zinc-800 shrink-0">
-            {(["tasks", "schedule", "backlog", "settings"] as SidePanel[]).map((tab) => (
+            {(["schedule", "backlog", "settings"] as SidePanel[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setPanel(tab)}
@@ -201,33 +173,19 @@ export function PomodoroApp() {
           </div>
 
           {/* Panel content */}
-          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-            {panel === "tasks" && (
-              <>
-                <BrainDump onAdd={handleAddTask} />
-                <TaskList
-                  tasks={tasks}
-                  currentTaskId={timerState.currentTaskId}
-                  onSelect={handleSelectAndStart}
-                />
-                {/* Day summary ใน tasks panel */}
-                <DaySummary
-                  completedPomodoros={timerState.completedPomodoros}
-                  pendingCount={pendingCount}
-                  onEndDay={handleEndDay}
-                  ending={endingDay}
-                />
-              </>
-            )}
-
+          <div className="flex-1 overflow-y-auto p-4">
             {panel === "schedule" && (
-              <ScheduleView
-                slots={slots}
+              <ScheduleMain
+                tasks={tasks}
                 currentTaskId={timerState.currentTaskId}
-                onGenerate={handleGenerate}
+                completedPomodoros={timerState.completedPomodoros}
+                pendingCount={pendingCount}
+                onAdd={handleAddTask}
+                onSelect={handleSelectAndStart}
                 onPriorityUp={handlePriorityUp}
                 onPriorityDown={handlePriorityDown}
-                generating={generating}
+                onEndDay={handleEndDay}
+                endingDay={endingDay}
               />
             )}
 
