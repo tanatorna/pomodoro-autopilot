@@ -10,8 +10,10 @@ import { ScheduleView } from "./ScheduleView";
 import { BacklogView } from "./BacklogView";
 import { DaySummary } from "./DaySummary";
 import { InterruptButton } from "./InterruptButton";
+import { SettingsPanel } from "./SettingsPanel";
 import { DURATIONS } from "@/engine";
 import type { TimerState } from "@/engine";
+import { useSettings } from "@/hooks/useSettings";
 
 interface SlotWithTask {
   id: number;
@@ -20,19 +22,21 @@ interface SlotWithTask {
   task: Task;
 }
 
-type SidePanel = "tasks" | "schedule" | "backlog";
+type SidePanel = "tasks" | "schedule" | "backlog" | "settings";
 
 const PANEL_LABELS: Record<SidePanel, string> = {
   tasks: "Tasks",
   schedule: "Schedule",
   backlog: "Backlog",
+  settings: "⚙️",
 };
 
 export function PomodoroApp() {
+  const { settings, durations, updateSettings } = useSettings();
   const {
     timerState, display, remainingMs, loading,
     handleStart, handlePause, handleResume, handleRestart,
-  } = usePomodoro();
+  } = usePomodoro(durations);
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [slots, setSlots] = useState<SlotWithTask[]>([]);
@@ -140,12 +144,16 @@ export function PomodoroApp() {
   }
 
   // ─── Derived ──────────────────────────────
+  // ใช้ durations จาก settings แทน DURATIONS default
   const totalMs =
     timerState.state === "SHORT_BREAK"
-      ? DURATIONS.SHORT_BREAK
+      ? durations.SHORT_BREAK
       : timerState.state === "LONG_BREAK"
-        ? DURATIONS.LONG_BREAK
-        : DURATIONS.WORK;
+        ? durations.LONG_BREAK
+        : durations.WORK;
+
+  // suppress unused import warning
+  void DURATIONS;
 
   const pendingCount = tasks.filter(
     (t) => t.status === "pending" || t.status === "in-progress"
@@ -172,7 +180,7 @@ export function PomodoroApp() {
 
           {/* Tab switcher */}
           <div className="flex border-b border-zinc-800 shrink-0">
-            {(["tasks", "schedule", "backlog"] as SidePanel[]).map((tab) => (
+            {(["tasks", "schedule", "backlog", "settings"] as SidePanel[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setPanel(tab)}
@@ -227,6 +235,13 @@ export function PomodoroApp() {
               <BacklogView
                 tasks={backlog}
                 onMoveToActive={handleMoveToActive}
+              />
+            )}
+
+            {panel === "settings" && (
+              <SettingsPanel
+                settings={settings}
+                onChange={updateSettings}
               />
             )}
           </div>

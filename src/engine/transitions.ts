@@ -12,25 +12,34 @@ import {
 } from "./types";
 import { computeEndsAt, computeEndsAtFromRemaining, computeRemaining } from "./timeMath";
 
+/** Custom durations (ms) — ถ้าไม่ส่ง จะ fallback ไป DURATIONS default */
+export interface DurationConfig {
+  WORK: number;
+  SHORT_BREAK: number;
+  LONG_BREAK: number;
+  POMODOROS_PER_LONG_BREAK: number;
+}
+
+function getDurations(custom?: Partial<DurationConfig>): DurationConfig {
+  return { ...DURATIONS, ...custom };
+}
+
 /**
  * start — IDLE → WORK
- * เริ่ม Pomodoro แรก
- *
- * @param state     - ต้องเป็น IDLE
- * @param nowMs     - Date.now()
- * @param taskId    - Task ที่จะทำ
  */
 export function start(
   state: TimerState,
   nowMs: number,
-  taskId: number | null = null
+  taskId: number | null = null,
+  custom?: Partial<DurationConfig>
 ): TimerState {
-  if (state.state !== "IDLE") return state; // guard: ไม่ทำอะไรถ้า state ไม่ถูก
+  if (state.state !== "IDLE") return state;
+  const d = getDurations(custom);
 
   return {
     ...state,
     state: "WORK",
-    endsAt: computeEndsAt("WORK", nowMs),
+    endsAt: nowMs + d.WORK,
     remainingMs: null,
     origin: null,
     currentTaskId: taskId,
@@ -39,10 +48,6 @@ export function start(
 
 /**
  * pause — WORK | SHORT_BREAK | LONG_BREAK → PAUSED
- * หยุดเวลา บันทึก remainingMs และ origin ไว้
- *
- * @param state   - ต้องเป็น WORK | SHORT_BREAK | LONG_BREAK
- * @param nowMs   - Date.now()
  */
 export function pause(state: TimerState, nowMs: number): TimerState {
   const pausableStates: TimerState["state"][] = [
@@ -64,10 +69,6 @@ export function pause(state: TimerState, nowMs: number): TimerState {
 
 /**
  * resume — PAUSED → (origin state)
- * เดินต่อจากเวลาที่ค้างไว้
- *
- * @param state   - ต้องเป็น PAUSED
- * @param nowMs   - Date.now()
  */
 export function resume(state: TimerState, nowMs: number): TimerState {
   if (state.state !== "PAUSED") return state;
@@ -83,64 +84,61 @@ export function resume(state: TimerState, nowMs: number): TimerState {
 }
 
 /**
- * restart — WORK | PAUSED → WORK (reset 25:00)
+ * restart — WORK | PAUSED → WORK (reset duration)
  * ลูกที่ทิ้งไม่นับ completedPomodoros
- *
- * @param state   - ต้องเป็น WORK หรือ PAUSED
- * @param nowMs   - Date.now()
  */
-export function restart(state: TimerState, nowMs: number): TimerState {
+export function restart(
+  state: TimerState,
+  nowMs: number,
+  custom?: Partial<DurationConfig>
+): TimerState {
   const restartableStates: TimerState["state"][] = ["WORK", "PAUSED"];
   if (!restartableStates.includes(state.state)) return state;
+  const d = getDurations(custom);
 
   return {
     ...state,
     state: "WORK",
-    endsAt: computeEndsAt("WORK", nowMs),
+    endsAt: nowMs + d.WORK,
     remainingMs: null,
     origin: null,
-    // completedPomodoros ไม่เพิ่ม — ลูกที่ทิ้งไม่นับ
   };
 }
 
 /**
  * tick — ตรวจสอบว่า timer หมดเวลาหรือยัง
- * ถ้าหมด → transition อัตโนมัติ (WORK→BREAK หรือ BREAK→WORK)
- * ถ้ายังไม่หมด → คืน state เดิม
- *
- * เรียกทุก 1 วินาทีจาก UI hook
- * รวม catch-up: ถ้า tab throttle แล้วกลับมา เรียกครั้งเดียวก็ transition ได้เลย
- *
- * @param state   - state ปัจจุบัน
- * @param nowMs   - Date.now()
  */
-export function tick(state: TimerState, nowMs: number): TimerState {
-  // ไม่มีอะไรให้ tick ใน IDLE หรือ PAUSED
+export function tick(
+  state: TimerState,
+  nowMs: number,
+  custom?: Partial<DurationConfig>
+): TimerState {
   if (state.state === "IDLE" || state.state === "PAUSED") return state;
   if (state.endsAt === null) return state;
-
-  // ยังไม่หมดเวลา
   if (nowMs < state.endsAt) return state;
 
-  // หมดเวลาแล้ว → transition
-  return _expire(state, nowMs);
+  return _expire(state, nowMs, custom);
 }
 
 /**
  * _expire (internal) — transition เมื่อ timer ถึง 0
- * แยกออกมาเพื่อให้ test ง่ายและ reuse ได้
  */
-function _expire(state: TimerState, nowMs: number): TimerState {
+function _expire(
+  state: TimerState,
+  nowMs: number,
+  custom?: Partial<DurationConfig>
+): TimerState {
+  const d = getDurations(custom);
+
   if (state.state === "WORK") {
     const newCompleted = state.completedPomodoros + 1;
-    const isLongBreak =
-      newCompleted % DURATIONS.POMODOROS_PER_LONG_BREAK === 0;
+    const isLongBreak = newCompleted % d.POMODOROS_PER_LONG_BREAK === 0;
     const nextState = isLongBreak ? "LONG_BREAK" : "SHORT_BREAK";
 
     return {
       ...state,
       state: nextState,
-      endsAt: computeEndsAt(nextState, nowMs),
+      endsAt: nowMs + d[nextState],
       remainingMs: null,
       origin: null,
       completedPomodoros: newCompleted,
@@ -151,7 +149,7 @@ function _expire(state: TimerState, nowMs: number): TimerState {
     return {
       ...state,
       state: "WORK",
-      endsAt: computeEndsAt("WORK", nowMs),
+      endsAt: nowMs + d.WORK,
       remainingMs: null,
       origin: null,
     };
@@ -162,7 +160,6 @@ function _expire(state: TimerState, nowMs: number): TimerState {
 
 /**
  * reset — กลับสู่ INITIAL_STATE
- * ใช้ตอนจบวัน หรือ clear ทุกอย่าง
  */
 export function reset(): TimerState {
   return { ...INITIAL_STATE };
