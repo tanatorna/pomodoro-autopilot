@@ -53,14 +53,25 @@ export function PomodoroApp() {
   }, [loadTasks, loadBacklog]);
 
   // ─── Task actions ─────────────────────────
-  async function handleAddTask(title: string) {
+  /** เพิ่ม task วันนี้ (pending → เข้า schedule ทันที) */
+  async function handleAddTask(title: string, estimatedPomodoros: number) {
     await fetch("/api/tasks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title }),
+      body: JSON.stringify({ title, estimatedPomodoros, status: "pending" }),
     });
     await loadTasks();
-    await generateSchedule(); // auto-generate ทันทีที่เพิ่ม task
+    await generateSchedule();
+  }
+
+  /** park task ไว้ใน Backlog (ยังไม่รู้ว่าเมื่อไหร่จะทำ) */
+  async function handleAddToBacklog(title: string, estimatedPomodoros: number) {
+    await fetch("/api/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, estimatedPomodoros, status: "backlog" }),
+    });
+    await loadBacklog();
   }
 
   async function handleSelectAndStart(taskId: number) {
@@ -192,6 +203,7 @@ export function PomodoroApp() {
             {panel === "backlog" && (
               <BacklogView
                 tasks={backlog}
+                onAdd={handleAddToBacklog}
                 onMoveToActive={handleMoveToActive}
               />
             )}

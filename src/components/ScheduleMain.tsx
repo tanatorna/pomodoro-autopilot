@@ -1,17 +1,16 @@
 "use client";
 
-import { useState } from "react";
 import type { Task } from "@/generated/prisma/client";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { TaskForm } from "./TaskForm";
 
 interface ScheduleMainProps {
   tasks: Task[];
   currentTaskId: number | null;
   completedPomodoros: number;
   pendingCount: number;
-  onAdd: (title: string) => Promise<void>;
+  onAdd: (title: string, estimatedPomodoros: number) => Promise<void>;
   onSelect: (taskId: number) => Promise<void>;
   onPriorityUp: (taskId: number, current: number) => Promise<void>;
   onPriorityDown: (taskId: number, current: number) => Promise<void>;
@@ -31,18 +30,6 @@ export function ScheduleMain({
   onEndDay,
   endingDay,
 }: ScheduleMainProps) {
-  const [input, setInput] = useState("");
-  const [adding, setAdding] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!input.trim()) return;
-    setAdding(true);
-    await onAdd(input.trim());
-    setInput("");
-    setAdding(false);
-  }
-
   // เรียงตาม priority สูง → ต่ำ, id น้อย → มาก
   const sorted = [...tasks].sort((a, b) =>
     b.priority !== a.priority ? b.priority - a.priority : a.id - b.id
@@ -51,23 +38,11 @@ export function ScheduleMain({
   return (
     <div className="flex flex-col gap-4 h-full">
 
-      {/* Brain dump input */}
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <Input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="เพิ่ม task..."
-          disabled={adding}
-          className="bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-amber-500"
-        />
-        <Button
-          type="submit"
-          disabled={adding || !input.trim()}
-          className="bg-amber-500 hover:bg-amber-400 text-black font-semibold shrink-0"
-        >
-          เพิ่ม
-        </Button>
-      </form>
+      {/* Brain dump input — task ที่จะทำวันนี้ */}
+      <TaskForm
+        placeholder="เพิ่ม task วันนี้..."
+        onAdd={onAdd}
+      />
 
       {/* Task list */}
       {sorted.length === 0 ? (
