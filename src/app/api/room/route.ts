@@ -50,3 +50,13 @@ export async function POST(request: Request) {
 
   return Response.json({ ok: true });
 }
+
+// DELETE /api/room — ลบข้อมูลทั้งหมดของห้องปัจจุบัน (จาก header X-Room-Id)
+export async function DELETE(request: Request) {
+  const roomId = getRoomId(request);
+  // เรียงตาม FK: slots (อ้าง task) → tasks → sessions
+  await prisma.scheduleSlot.deleteMany({ where: { roomId } });
+  await prisma.task.deleteMany({ where: { roomId } });
+  await prisma.session.deleteMany({ where: { roomId } });
+  return new Response(null, { status: 204 });
+}

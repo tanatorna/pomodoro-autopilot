@@ -100,5 +100,14 @@ export function useRoom() {
     [roomId, roomHeaders]
   );
 
-  return { roomId, setRoom, createRoom, renameRoom, checkRoom, roomHeaders };
+  /** ลบห้องปัจจุบันทิ้ง → แล้วเด้งไปห้องเปล่าใหม่ (ไม่กลับห้องเก่า) */
+  const deleteRoom = useCallback(async () => {
+    await fetch("/api/room", { method: "DELETE", headers: roomHeaders });
+    const id = generatePersonalId();
+    localStorage.setItem(STORAGE_KEY, id);
+    setRoomIdState(id);
+    window.location.reload();
+  }, [roomHeaders]);
+
+  return { roomId, setRoom, createRoom, renameRoom, checkRoom, deleteRoom, roomHeaders };
 }

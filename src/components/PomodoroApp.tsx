@@ -22,7 +22,7 @@ const PANEL_LABELS: Record<SidePanel, string> = {
 
 export function PomodoroApp() {
   const { settings, durations, updateSettings } = useSettings();
-  const { roomId, setRoom, createRoom, renameRoom, checkRoom, roomHeaders } = useRoom();
+  const { roomId, setRoom, createRoom, renameRoom, checkRoom, deleteRoom, roomHeaders } = useRoom();
   const {
     timerState, display, remainingMs, loading,
     handleStart, handlePause, handleResume, handleRestart,
@@ -187,6 +187,7 @@ export function PomodoroApp() {
             onCreateRoom={createRoom}
             onRenameRoom={renameRoom}
             onCheckRoom={checkRoom}
+            onDeleteRoom={deleteRoom}
           />
         </div>
       </header>

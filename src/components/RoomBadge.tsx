@@ -12,6 +12,8 @@ interface RoomBadgeProps {
   onRenameRoom: (code: string) => Promise<{ ok: boolean; reason?: string }>;
   /** เช็คว่า code มีคนใช้แล้วไหม */
   onCheckRoom: (code: string) => Promise<boolean>;
+  /** ลบห้องปัจจุบันทิ้ง → ไปห้องเปล่าใหม่ */
+  onDeleteRoom: () => Promise<void>;
 }
 
 type RenameState =
@@ -28,9 +30,14 @@ export function RoomBadge({
   onCreateRoom,
   onRenameRoom,
   onCheckRoom,
+  onDeleteRoom,
 }: RoomBadgeProps) {
   const [open, setOpen] = useState(false);
   const [joinInput, setJoinInput] = useState("");
+
+  // ── delete current room (2-step confirm) ──
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // ── rename current room ──
   const [renaming, setRenaming] = useState(false);
@@ -121,6 +128,7 @@ export function RoomBadge({
               setOpen(false);
               setJoinInput("");
               setRenaming(false);
+              setConfirmingDelete(false);
             }}
           />
 
@@ -244,6 +252,47 @@ export function RoomBadge({
               <p className="text-xs text-zinc-600 mt-2">
                 ไม่มี code? ให้เพื่อน copy link ด้านบนมาให้
               </p>
+            </div>
+
+            {/* ── ลบห้องนี้ (danger zone) ── */}
+            <div className="border-t border-zinc-800 mt-3 pt-3">
+              {!confirmingDelete ? (
+                <button
+                  onClick={() => setConfirmingDelete(true)}
+                  className="w-full text-xs text-zinc-500 hover:text-red-400 px-3 py-2 rounded-lg
+                    border border-zinc-800 hover:border-red-500/40 transition-colors"
+                >
+                  🗑 ลบห้องนี้
+                </button>
+              ) : (
+                <div className="rounded-lg border border-red-500/40 bg-red-500/5 p-3">
+                  <p className="text-xs text-red-300 mb-1 font-semibold">
+                    ลบห้อง {roomId} ถาวร?
+                  </p>
+                  <p className="text-xs text-zinc-400 mb-3">
+                    task / schedule / timer ทั้งหมดในห้องนี้จะหายและ<strong>กู้คืนไม่ได้</strong>
+                    {" "}· ถ้าแชร์ห้องนี้กับคนอื่น จะกระทบทุกคน · ลบเสร็จจะไปห้องเปล่าใหม่
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => { setDeleting(true); await onDeleteRoom(); }}
+                      disabled={deleting}
+                      className="flex-1 px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-400
+                        text-white text-xs font-semibold disabled:opacity-50"
+                    >
+                      {deleting ? "กำลังลบ..." : "ยืนยันลบถาวร"}
+                    </button>
+                    <button
+                      onClick={() => setConfirmingDelete(false)}
+                      disabled={deleting}
+                      className="px-3 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-zinc-200
+                        bg-zinc-800 border border-zinc-700"
+                    >
+                      ยกเลิก
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </>
