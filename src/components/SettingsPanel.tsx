@@ -98,9 +98,9 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
           <NumberInputRow
             label="⏱ Focus (Pomodoro)"
             value={settings.workMinutes}
-            min={5}
+            min={1}
             max={60}
-            step={5}
+            step={1}
             onChange={(v) => onChange({ workMinutes: v })}
           />
         </div>
@@ -120,9 +120,9 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
           <NumberInputRow
             label="🛋️ Long Break"
             value={settings.longBreakMinutes}
-            min={5}
-            max={45}
-            step={5}
+            min={1}
+            max={60}
+            step={1}
             onChange={(v) => onChange({ longBreakMinutes: v })}
           />
         </div>
