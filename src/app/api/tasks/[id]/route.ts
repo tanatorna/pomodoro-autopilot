@@ -1,8 +1,8 @@
-// PATCH /api/tasks/[id] — อัปเดต priority / status / estimatedPomodoros
-
 import { prisma } from "@/lib/prisma";
+import { getRoomId } from "@/lib/room";
 
 type PatchBody = {
+  title?: string;
   priority?: number;
   status?: string;
   estimatedPomodoros?: number;
@@ -12,6 +12,7 @@ export async function PATCH(
   request: Request,
   ctx: RouteContext<"/api/tasks/[id]">
 ) {
+  const roomId = getRoomId(request);
   const { id } = await ctx.params;
   const taskId = parseInt(id, 10);
 
@@ -21,24 +22,32 @@ export async function PATCH(
 
   const body = (await request.json()) as PatchBody;
 
-  const task = await prisma.task.update({
-    where: { id: taskId },
-    data: {
-      ...(body.priority !== undefined && { priority: body.priority }),
-      ...(body.status !== undefined && { status: body.status }),
-      ...(body.estimatedPomodoros !== undefined && {
-        estimatedPomodoros: body.estimatedPomodoros,
-      }),
-    },
-  });
-
-  return Response.json(task);
+  try {
+    const task = await prisma.task.update({
+      where: { id: taskId, roomId },
+      data: {
+        ...(body.title !== undefined && body.title.trim() && {
+          title: body.title.trim(),
+        }),
+        ...(body.priority !== undefined && { priority: body.priority }),
+        ...(body.status !== undefined && { status: body.status }),
+        ...(body.estimatedPomodoros !== undefined && {
+          estimatedPomodoros: body.estimatedPomodoros,
+        }),
+      },
+    });
+    return Response.json(task);
+  } catch {
+    // P2025 = ไม่พบ task ที่ id นี้ "ในห้องนี้" (อาจเป็นของห้องอื่น)
+    return Response.json({ error: "task not found" }, { status: 404 });
+  }
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   ctx: RouteContext<"/api/tasks/[id]">
 ) {
+  const roomId = getRoomId(request);
   const { id } = await ctx.params;
   const taskId = parseInt(id, 10);
 
@@ -46,6 +55,13 @@ export async function DELETE(
     return Response.json({ error: "invalid id" }, { status: 400 });
   }
 
-  await prisma.task.delete({ where: { id: taskId } });
-  return new Response(null, { status: 204 });
+  try {
+    // ScheduleSlot อ้างถึง task ด้วย FK (ON DELETE RESTRICT)
+    // → ต้องลบ slots ของ task นี้ก่อน ไม่งั้น delete จะติด constraint
+    await prisma.scheduleSlot.deleteMany({ where: { taskId, roomId } });
+    await prisma.task.delete({ where: { id: taskId, roomId } });
+    return new Response(null, { status: 204 });
+  } catch {
+    return Response.json({ error: "task not found" }, { status: 404 });
+  }
 }
