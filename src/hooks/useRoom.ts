@@ -12,6 +12,19 @@ function generatePersonalId(): string {
   ).join("");
 }
 
+/** ถ้า user ล็อกอินอยู่ → ผูกห้อง code นี้เข้ากับบัญชี (anonymous จะได้ 401 ไม่เป็นไร)
+ *  เรียกตอนเปลี่ยนห้องทุกครั้ง เพื่อให้บัญชีตามห้องปัจจุบัน ไม่โดน effect ดึงกลับ */
+async function syncAccountRoom(code: string): Promise<void> {
+  try {
+    await fetch("/api/room/claim", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Room-Id": code },
+    });
+  } catch {
+    /* network error / anonymous — ข้ามได้ */
+  }
+}
+
 export function useRoom() {
   const [roomId, setRoomIdState] = useState<string>("");
 
@@ -43,8 +56,9 @@ export function useRoom() {
     setRoomIdState(newId);
   }, []);
 
-  const setRoom = useCallback((code: string) => {
+  const setRoom = useCallback(async (code: string) => {
     const normalized = code.toUpperCase().trim();
+    await syncAccountRoom(normalized); // ถ้า login อยู่ บัญชีตามไปห้องนี้
     localStorage.setItem(STORAGE_KEY, normalized);
     setRoomIdState(normalized);
     // reload เพื่อ sync ข้อมูลใหม่
@@ -52,8 +66,9 @@ export function useRoom() {
   }, []);
 
   /** สร้างห้องใหม่ (สุ่ม code ใหม่ ว่างเปล่า) */
-  const createRoom = useCallback(() => {
+  const createRoom = useCallback(async () => {
     const id = generatePersonalId();
+    await syncAccountRoom(id);
     localStorage.setItem(STORAGE_KEY, id);
     setRoomIdState(id);
     window.location.reload();
@@ -104,6 +119,7 @@ export function useRoom() {
   const deleteRoom = useCallback(async () => {
     await fetch("/api/room", { method: "DELETE", headers: roomHeaders });
     const id = generatePersonalId();
+    await syncAccountRoom(id); // บัญชีย้ายมาห้องเปล่าใหม่
     localStorage.setItem(STORAGE_KEY, id);
     setRoomIdState(id);
     window.location.reload();

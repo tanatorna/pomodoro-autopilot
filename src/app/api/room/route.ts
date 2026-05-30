@@ -4,6 +4,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getRoomId } from "@/lib/room";
+import { auth } from "@/auth";
 
 const CODE_RE = /^[A-Z0-9]{3,16}$/;
 
@@ -47,6 +48,15 @@ export async function POST(request: Request) {
     prisma.session.updateMany({ where: { roomId: from }, data: { roomId: to } }),
     prisma.scheduleSlot.updateMany({ where: { roomId: from }, data: { roomId: to } }),
   ]);
+
+  // ถ้า user ล็อกอินอยู่ และผูกห้อง from ไว้ → ย้าย binding ไป to ด้วย (กันไม่ให้ effect ดึงกลับ)
+  const session = await auth();
+  if (session?.user?.id) {
+    await prisma.user.updateMany({
+      where: { id: session.user.id, roomId: from },
+      data: { roomId: to },
+    });
+  }
 
   return Response.json({ ok: true });
 }
