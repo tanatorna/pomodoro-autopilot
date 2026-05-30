@@ -5,6 +5,8 @@ import type { Task } from "@/generated/prisma/client";
 import { usePomodoro } from "@/hooks/usePomodoro";
 import { useSettings } from "@/hooks/useSettings";
 import { useRoom } from "@/hooks/useRoom";
+import { useSession } from "next-auth/react";
+import { AccountButton } from "./AccountButton";
 import { Timer } from "./Timer";
 import { ScheduleMain } from "./ScheduleMain";
 import { BacklogView } from "./BacklogView";
@@ -23,6 +25,15 @@ const PANEL_LABELS: Record<SidePanel, string> = {
 export function PomodoroApp() {
   const { settings, durations, updateSettings } = useSettings();
   const { roomId, setRoom, createRoom, renameRoom, checkRoom, deleteRoom, roomHeaders } = useRoom();
+
+  // ── optional sign-in: ถ้าล็อกอินแล้วบัญชีผูกห้องไว้ → สลับไปห้องนั้น ──
+  const { data: session } = useSession();
+  const accountRoom = session?.user?.roomId ?? null;
+  useEffect(() => {
+    if (accountRoom && roomId && accountRoom !== roomId) {
+      setRoom(accountRoom); // reload ไปห้องของบัญชี
+    }
+  }, [accountRoom, roomId, setRoom]);
   const {
     timerState, display, remainingMs, loading,
     handleStart, handlePause, handleResume, handleRestart,
@@ -189,6 +200,7 @@ export function PomodoroApp() {
             onCheckRoom={checkRoom}
             onDeleteRoom={deleteRoom}
           />
+          <AccountButton roomId={roomId} roomHeaders={roomHeaders} />
         </div>
       </header>
 

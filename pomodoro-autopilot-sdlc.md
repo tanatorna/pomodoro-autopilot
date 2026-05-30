@@ -282,13 +282,14 @@ Slice 4 ✅ Backlog + End-of-day summary      → api/backlog, BacklogView, DayS
 | **Stretch A — ลบแล้วไปไหนต่อ** — ✅ **ทำตามนี้** | **ลบเสร็จ → ห้องเปล่าใหม่เสมอ · ไม่กลับห้องเก่า ไม่มี room-history** เพราะ user จำ code เก่าไม่ได้ + action ทำลายข้อมูลต้องชัดเจน · โมเดล "โน้ตใช้เสร็จฉีกทิ้ง" → ทางเดียวที่เก็บห้องไว้คือ copy link |
 | **Stretch B (Week 7): TTL auto-cleanup** | cron ลบห้องที่ `Session.updatedAt` เงียบเกิน N วัน · logic "ห้อง stale?" เป็น **pure function (unit-test ได้)** + cleanup endpoint (**integration-test ได้**) — ตรงกับ Week 7 stretch ของแผนพอดี |
 
-**Auth / Login — Optional Sign-in** (ตัดสินใจ 2026-05-30 · 🚧 กำลังทำ)
+**Auth / Login — Optional Sign-in** (✅ ทำแล้ว — Google OAuth via Auth.js v5 · 2026-05-30)
 
 | หัวข้อ | แนวทาง |
 |---|---|
 | **รูปแบบที่เลือก** | **Optional sign-in** — แอปยังใช้แบบ anonymous + room code ได้ตามเดิม (zero-friction, ไม่มีกำแพง signup) แต่ "sign in เพื่อ claim ห้อง" ได้ → เข้าถึงข้อมูลจากเครื่องไหนก็ได้โดยไม่ต้องจำ code |
 | **เหตุผล** | ไม่ over-engineer (ข้อมูล pomodoro ไม่ sensitive) · รักษา UX เปิด-แล้วใช้ · ได้ identity ถาวรเมื่อต้องการ · **คุณค่าต่อ portfolio/SDET สูง** (auth = ขุมทรัพย์การเทสต์: login/logout, protected route, token expiry, negative + security tests) |
-| **สถานะ** | กำลัง implement — กลไก auth ให้เลือก (built-in credential vs OAuth provider); OAuth ต้องมี external secret จากผู้ใช้ |
+| **สถานะ** | ✅ build + verify (anonymous flow ไม่พัง, `providers:["google"]`, build เขียว) · กลไก: Auth.js v5 + Google + Prisma adapter (JWT strategy → ไม่ต้องมี Auth Session table, เลี่ยงชน `Session` ของ pomodoro) · `User.roomId` = ห้องที่ claim · ปุ่ม Sign in/out + claim ห้อง + auto-switch ไปห้องบัญชี |
+| **การบ้านก่อนใช้จริง** | สร้าง Google OAuth client (redirect `…/api/auth/callback/google`) + ใส่ `AUTH_GOOGLE_ID/SECRET` ใน `.env` (local) และ Vercel env (`AUTH_SECRET`+creds) · รัน `prisma migrate deploy` บน Turso (สร้าง User/Account) · ⚠️ prod ต้องตั้ง env ก่อนไม่งั้น `/api/auth/*` error |
 
 **Phase 2 — QA (Top-down pyramid)** — ⬜ **ยังไม่เริ่ม** (test deps ยังไม่ถูกติดตั้งใน `package.json`)
 ```
