@@ -180,18 +180,13 @@ export function PomodoroApp() {
     tasks.find((t) => t.id === timerState.currentTaskId) ?? null;
 
   return (
-    <div className="min-h-screen bg-[#111] text-white flex flex-col">
+    <div className="min-h-screen dusk-bg text-zinc-100 flex flex-col">
       {/* Header */}
-      <header className="px-6 py-4 border-b border-zinc-800 flex items-center justify-between shrink-0">
-        <h1 className="text-lg font-semibold text-zinc-200">
-          🍅 Pomodoro Autopilot
+      <header className="px-4 sm:px-6 py-3 flex items-center justify-between gap-2 shrink-0 border-b border-white/10 glass">
+        <h1 className="text-base md:text-lg font-semibold text-zinc-100 whitespace-nowrap">
+          🍅 Pomodoro<span className="hidden sm:inline"> Autopilot</span>
         </h1>
-        <div className="flex items-center gap-3">
-          {timerState.completedPomodoros > 0 && (
-            <span className="text-xs text-zinc-600">
-              {timerState.completedPomodoros} 🍅 วันนี้
-            </span>
-          )}
+        <div className="flex items-center gap-2 shrink-0">
           <RoomBadge
             roomId={roomId}
             onChangeRoom={setRoom}
@@ -204,27 +199,43 @@ export function PomodoroApp() {
         </div>
       </header>
 
-      {/* Main layout */}
-      <div className="flex flex-1 overflow-hidden">
+      {/* Main area: มือถือ stack แนวตั้ง (timer บน) · desktop เป็น 2 คอลัมน์ (panel ซ้าย, timer กลาง) */}
+      <div className="flex flex-1 flex-col md:flex-row md:overflow-hidden">
 
-        {/* Left sidebar */}
-        <aside className="w-80 border-r border-zinc-800 flex flex-col overflow-hidden shrink-0">
+        {/* Timer (hero) */}
+        <main className="order-1 md:order-2 md:flex-1 flex items-center justify-center px-4 py-10 md:py-0">
+          <Timer
+            timerState={timerState}
+            display={display}
+            remainingMs={remainingMs}
+            totalMs={totalMs}
+            loading={loading}
+            currentTaskTitle={currentTask?.title ?? null}
+            onStart={() => handleStart()}
+            onPause={handlePause}
+            onResume={handleResume}
+            onRestart={handleRestart}
+          />
+        </main>
+
+        {/* Panel (มือถือ: ใต้ timer / desktop: sidebar ซ้าย) */}
+        <aside className="order-2 md:order-1 w-full md:w-80 shrink-0 flex flex-col border-t md:border-t-0 md:border-r border-white/10 glass md:overflow-hidden">
 
           {/* Tab switcher */}
-          <div className="flex border-b border-zinc-800 shrink-0">
+          <div className="flex border-b border-white/10 shrink-0">
             {(["schedule", "backlog", "settings"] as SidePanel[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setPanel(tab)}
-                className={`flex-1 py-2.5 text-xs font-medium uppercase tracking-wider transition-colors
+                className={`flex-1 py-3 text-xs font-medium uppercase tracking-wider transition-colors
                   ${panel === tab
-                    ? "text-amber-400 border-b-2 border-amber-400"
-                    : "text-zinc-500 hover:text-zinc-300"
+                    ? "text-amber-300 border-b-2 border-amber-300"
+                    : "text-zinc-400 hover:text-zinc-200"
                   }`}
               >
                 {PANEL_LABELS[tab]}
                 {tab === "backlog" && backlog.length > 0 && (
-                  <span className="ml-1 bg-zinc-700 text-zinc-400 rounded-full px-1.5 text-xs">
+                  <span className="ml-1 bg-white/10 text-zinc-200 rounded-full px-1.5 text-xs">
                     {backlog.length}
                   </span>
                 )}
@@ -233,7 +244,7 @@ export function PomodoroApp() {
           </div>
 
           {/* Panel content */}
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 md:overflow-y-auto p-4">
             {panel === "schedule" && (
               <ScheduleMain
                 tasks={tasks}
@@ -267,22 +278,6 @@ export function PomodoroApp() {
             )}
           </div>
         </aside>
-
-        {/* Center: Timer */}
-        <main className="flex-1 flex items-center justify-center">
-          <Timer
-            timerState={timerState}
-            display={display}
-            remainingMs={remainingMs}
-            totalMs={totalMs}
-            loading={loading}
-            currentTaskTitle={currentTask?.title ?? null}
-            onStart={() => handleStart()}
-            onPause={handlePause}
-            onResume={handleResume}
-            onRestart={handleRestart}
-          />
-        </main>
       </div>
 
       {/* Interrupt button */}

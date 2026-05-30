@@ -128,3 +128,40 @@
     @apply font-sans;
   }
 }
+
+/* ─── Deep cozy dusk theme (plain CSS — emit ชัวร์บน Tailwind v4) ─── */
+
+/* พื้นหลังบรรยากาศพลบค่ำ: แสงอุ่นด้านบน ไล่ลงน้ำเงินเข้มด้านล่าง */
+.dusk-bg {
+  background-color: #181b36;
+  background-image:
+    radial-gradient(
+      135% 95% at 50% -10%,
+      rgba(232, 168, 170, 0.45) 0%,
+      rgba(150, 110, 150, 0.18) 38%,
+      rgba(40, 38, 70, 0) 62%
+    ),
+    linear-gradient(
+      180deg,
+      #3b2b4d 0%,
+      #463159 20%,
+      #3c2f56 42%,
+      #2b2950 68%,
+      #181b36 100%
+    );
+  background-attachment: fixed;
+}
+
+/* กระจกฝ้าเข้ม — สำหรับ panel/แถบหลัก */
+.glass {
+  background-color: rgba(18, 14, 28, 0.5);
+  backdrop-filter: blur(18px) saturate(130%);
+  -webkit-backdrop-filter: blur(18px) saturate(130%);
+}
+
+/* กระจกฝ้าอ่อน — สำหรับการ์ด/ปุ่มย่อย */
+.glass-soft {
+  background-color: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}

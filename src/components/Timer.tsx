@@ -70,7 +70,7 @@ export function Timer({
       <div className="relative flex items-center justify-center w-64 h-64">
         {/* Progress ring */}
         <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="45" fill="none" stroke="#27272a" strokeWidth="4" />
+          <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="4" />
           <circle
             cx="50" cy="50" r="45"
             fill="none"
@@ -114,14 +114,14 @@ export function Timer({
             <Button
               onClick={onPause}
               variant="outline"
-              className="border-zinc-600 text-zinc-300 hover:bg-zinc-800"
+              className="border-white/20 bg-white/5 text-zinc-100 hover:bg-white/10 hover:text-white"
             >
               หยุดชั่วคราว
             </Button>
             <Button
               onClick={onRestart}
               variant="ghost"
-              className="text-zinc-500 hover:text-zinc-300"
+              className="text-zinc-300 hover:text-white hover:bg-white/10"
             >
               เริ่มใหม่
             </Button>
@@ -139,7 +139,7 @@ export function Timer({
             <Button
               onClick={onRestart}
               variant="ghost"
-              className="text-zinc-500 hover:text-zinc-300"
+              className="text-zinc-300 hover:text-white hover:bg-white/10"
             >
               เริ่มใหม่
             </Button>
