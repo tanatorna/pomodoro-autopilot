@@ -55,13 +55,21 @@
 - **Pause / Resume / Restart** — ตามข้อ 4
 - **Interrupt → reschedule** — งานด่วนแทรก จัด schedule ที่เหลือใหม่
 - **Backlog** — task ค้างย้ายข้ามวัน + งานอนาคต park ไว้
-- **Work + Personal tasks** — AI แทรก "reward pomodoro" ให้ personal task ที่ desire สูง
+- **Work + Personal tasks** — AI แทรก "reward pomodoro" — ❌ *ยังไม่ได้ทำ (deferred)*
+
+### เพิ่มภายหลัง — build + deploy แล้ว (นอกแผน flagship เดิม)
+- **Configurable durations** — ตั้งเวลา WORK/BREAK/LONG_BREAK เองได้ (แท็บ Settings)
+- **Room** — แยกข้อมูลต่อผู้ใช้ + แชร์ห้องผ่านลิงก์ (สร้าง / แก้รหัส+เช็คซ้ำ / เข้าห้องอื่น / ลบห้อง)
+- **Login (optional Google sign-in)** — claim ห้อง + เข้าถึงข้ามเครื่อง (ไม่บังคับ login)
+- **Task edit / delete** — แก้ชื่อ inline + ลบ task (กัน task ที่กำลังโฟกัสไม่ให้ลบ)
+- **Responsive + ธีม deep-cozy-dusk** — ใช้บนมือถือได้ (timer บน + panel ล่าง)
 
 ### OUT — Future Work (เขียนเป็น Roadmap ใน README)
 - Line Bot notification (แก้ปัญหา mobile-background reliability)
 - Notion sync
 - Cross-device PWA + Service Worker push
-- Configurable durations, auto-void-on-long-pause (optional)
+- auto-void-on-long-pause (optional)
+- AI reward pomodoro (personal task)
 
 ### Daily Journey (flagship, web-based)
 ```
@@ -73,6 +81,52 @@
 จบวัน  → สรุป + task ค้าง → ย้าย Backlog
 ```
 > ข้อจำกัดที่ document ไว้: นาฬิกาเตือนได้ชัวร์เมื่อ tab เปิด/focus และ catch-up ถูกต้องเมื่อกลับมาที่ tab; กรณีมือถือล็อกจอ background = known limitation → แก้ด้วย Line integration ใน Roadmap (เป็น interview story)
+
+---
+
+### 1.1 User Journeys & Use-Cases — สำหรับ Design Handoff (อัปเดต 2026-05-31)
+
+> สะท้อน **แอปจริงที่ deploy แล้ว** ครบทุกฟีเจอร์ปัจจุบัน · ใช้เป็นฐานออกแบบ UI/flow/states · ธีมปัจจุบัน = deep-cozy-dusk (อ้างอิง studywithme.io)
+
+#### 🗺️ A. โครงหน้าจอ (Single-page)
+แอปเป็น **หน้าเดียว** ประกอบด้วย 4 โซน:
+1. **Header** — โลโก้ · ป้ายห้อง 🔑 (dropdown จัดการห้อง) · ปุ่ม/avatar บัญชี 👤
+2. **Timer (hero)** — badge สถานะ · ชื่อ task ที่ทำอยู่ · วงแหวนนับถอยหลัง · ปุ่มควบคุม
+3. **Side panel** — 3 แท็บ: **Schedule** (เพิ่ม+รายการ task), **Backlog**, **Settings**
+4. **Interrupt FAB** — ปุ่มลอยมุมขวาล่าง (โผล่ตอน WORK/PAUSED)
+
+**Responsive:**
+- **Desktop (≥768px):** sidebar ซ้าย + timer กลาง
+- **Mobile (<768px):** stack แนวตั้ง — timer อยู่บนสุด, panel เลื่อนลงล่าง
+
+#### 🚶 B. User Journeys (ทุก flow ที่ทำได้จริง)
+| # | Journey | ขั้นตอน |
+|---|---|---|
+| J1 | **Brain dump → จัดตาราง** | พิมพ์ task + จำนวน 🍅 → กดเพิ่ม (cursor อยู่ช่องเดิม พิมพ์ต่อได้) → ระบบ auto-schedule |
+| J2 | **โฟกัส/พักอัตโนมัติ** | กด "เริ่ม"/"เลือก" task → WORK 25:00 → หมดเวลา (เสียง+noti) → BREAK อัตโนมัติ → task ถัดไป → ครบ 4 รอบ = LONG_BREAK |
+| J3 | **Pause / Resume / Restart** | หยุดชั่วคราว → เดินต่อ(ลูกเดิม) · เริ่มใหม่(reset 25:00 ไม่นับ) |
+| J4 | **แทรกงานด่วน** | กด Interrupt FAB → กรอกงาน → void ลูกปัจจุบัน + จัด schedule ใหม่ + เริ่มงานด่วนทันที |
+| J5 | **แก้ไข/ลบ task** | hover/ดับเบิลคลิก → แก้ชื่อ inline (Enter/blur เซฟ) · 🗑 ลบ (task ที่กำลังโฟกัส **ลบไม่ได้**) · ▲▼ ปรับ priority |
+| J6 | **จบวัน** | "จบวัน → ย้าย Backlog" → task ค้างไป Backlog + สรุปยอด 🍅 · Backlog: ดึง task กลับมาทำได้ |
+| J7 | **ตั้งค่าเวลา** | แท็บ Settings → ปรับ WORK/BREAK/LONG_BREAK (number + ปุ่ม ±) |
+| J8 | **Room (จัดการห้อง)** | 🔑 → **แก้รหัสห้อง** (เช็คซ้ำ live: ✓ว่าง/✗มีคนใช้) · **+ สร้างห้องใหม่** · **เข้าห้องอื่น** (ใส่ code) · **ลบห้อง** (confirm 2 ชั้น → ห้องเปล่าใหม่) · **copy link** แชร์ |
+| J9 | **Login (optional)** | กด Sign in → Google → avatar โผล่ · กด avatar → "ใช้ห้องนี้กับบัญชี" (claim) → login เครื่องอื่นเจอห้องเดิม · Sign out |
+
+#### 🎨 C. States ที่ต้องออกแบบ (designer checklist)
+- **Timer:** IDLE "พร้อมเริ่ม" / WORK "โฟกัส 🍅" / SHORT_BREAK "พักสั้น ☕" / LONG_BREAK "พักยาว 🛋️" / PAUSED "หยุดพัก ⏸" / loading "--:--"
+- **Task item:** ปกติ / **active** (ไฮไลต์ amber + จุดกะพริบ) / **done** (ขีดฆ่า ✓) / **editing** (inline input) / hover (โผล่ปุ่ม ✎ 🗑)
+- **Task list:** ว่าง ("ยังไม่มี task — พิมพ์ด้านบน 👆") / มีรายการ
+- **Room dropdown:** ปัจจุบัน(+แก้รหัส+copy) / สร้างใหม่ / เข้าห้องอื่น / danger zone ลบ(idle→confirm) · rename: checking/available/taken/invalid
+- **Account:** signed-out (ปุ่ม Sign in) / signed-in (avatar + dropdown: email, claim, sign out) / claimed vs not
+- **Feedback:** เสียง + Web Notification ตอนหมดเวลา · confirm dialogs · summary จบวัน
+- **Error/edge:** ห้องว่าง · network error · OAuth error (Testing mode = เฉพาะ test users)
+
+#### 🧩 D. Component → ไฟล์ (อ้างอิงให้ designer/dev คุยกัน)
+`PomodoroApp` (layout) · `Timer` · `ScheduleMain` (task list+form) · `TaskForm` · `BacklogView` · `SettingsPanel` · `DaySummary` · `InterruptButton` · `RoomBadge` · `AccountButton`
+
+#### 🌙 E. Visual ปัจจุบัน + จุดที่อยากให้ designer ช่วยขัด
+- **ธีม:** พื้นหลัง gradient พลบค่ำ (ม่วงพลัม→น้ำเงินเข้ม) + glassmorphism (กระจกฝ้า) + accent **amber**
+- **ยังไม่ polish เต็มที่ (ขอ designer ช่วย):** แท็บ Backlog/Settings, กล่องสรุปวันนี้, dropdown ห้อง/บัญชี (ยังเป็นการ์ดทึบสี zinc ไม่เข้าธีม glass) · spacing/typography บนมือถือ · (option) ใส่รูปพื้นหลังเมืองจริง
 
 ---
 
