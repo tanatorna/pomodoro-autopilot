@@ -81,73 +81,74 @@ export function ScheduleMain({
             return (
               <li
                 key={task.id}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-colors group
+                className={`flex flex-col gap-2 px-3 py-2.5 rounded-xl border transition-colors group
                   ${isActive
                     ? "bg-accent border-[var(--border-active)]"
                     : "bg-card border-border hover:bg-secondary"
                   }`}
               >
-                {/* Rank */}
-                <span
-                  className="text-xs font-mono w-4 shrink-0 text-right"
-                  style={{ color: isDone ? "var(--success)" : "var(--faint)" }}
-                >
-                  {isDone ? "✓" : index + 1}
-                </span>
-
-                {/* Active dot */}
-                {isActive && !isEditing && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 animate-pulse" />
-                )}
-
-                {/* Title — inline edit */}
-                {isEditing ? (
-                  <input
-                    autoFocus
-                    value={editText}
-                    onChange={(e) => setEditText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") e.currentTarget.blur();
-                      if (e.key === "Escape") setEditingId(null);
-                    }}
-                    onBlur={() => commitEdit(task.id, task.title)}
-                    className="flex-1 min-w-0 text-sm bg-card border border-primary rounded-md px-2 py-1 text-foreground focus:outline-none"
-                  />
-                ) : (
+                {/* Row 1: rank + dot + title (wrap) + pomodoro pill */}
+                <div className="flex items-start gap-2">
                   <span
-                    onDoubleClick={() => !isDone && startEdit(task)}
-                    title={task.title}
-                    className={`flex-1 text-sm truncate min-w-0
-                      ${isDone
-                        ? "line-through text-muted-foreground"
-                        : isActive
-                          ? "text-foreground font-semibold"
-                          : "text-[var(--ink-soft)]"}`}
+                    className="text-xs font-mono w-4 shrink-0 text-right pt-0.5 leading-snug"
+                    style={{ color: isDone ? "var(--success)" : "var(--faint)" }}
                   >
-                    {task.title}
+                    {isDone ? "✓" : index + 1}
                   </span>
-                )}
 
-                {!isEditing && (
-                  <>
-                    {/* Pomodoro count pill */}
-                    <span className="shrink-0 rounded-full border border-border px-1.5 py-0.5 text-xs text-muted-foreground">
+                  {isActive && !isEditing && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 animate-pulse mt-2" />
+                  )}
+
+                  {isEditing ? (
+                    <input
+                      autoFocus
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") e.currentTarget.blur();
+                        if (e.key === "Escape") setEditingId(null);
+                      }}
+                      onBlur={() => commitEdit(task.id, task.title)}
+                      className="flex-1 min-w-0 text-sm bg-card border border-primary rounded-md px-2 py-1 text-foreground focus:outline-none"
+                    />
+                  ) : (
+                    <span
+                      onDoubleClick={() => !isDone && startEdit(task)}
+                      title={task.title}
+                      className={`flex-1 text-sm leading-snug break-words min-w-0
+                        ${isDone
+                          ? "line-through text-muted-foreground"
+                          : isActive
+                            ? "text-foreground font-semibold"
+                            : "text-[var(--ink-soft)]"}`}
+                    >
+                      {task.title}
+                    </span>
+                  )}
+
+                  {!isEditing && (
+                    <span className="shrink-0 rounded-full border border-border px-1.5 py-0.5 text-xs text-muted-foreground self-start mt-0.5">
                       {task.completedPomodoros}/{task.estimatedPomodoros}🍅
                     </span>
+                  )}
+                </div>
 
-                    {/* Priority controls */}
+                {/* Row 2: priority + start + edit/delete (ชิดขวา) */}
+                {!isEditing && (
+                  <div className="flex items-center justify-end gap-1 pl-6">
                     {!isDone && (
-                      <div className="flex flex-col gap-0.5 shrink-0">
+                      <div className="flex items-center gap-0.5">
                         <button
                           onClick={() => onPriorityUp(task.id, task.priority)}
-                          className="text-[var(--faint)] hover:text-primary text-xs w-4 h-3.5 flex items-center justify-center leading-none"
+                          className="text-[var(--faint)] hover:text-primary text-xs w-5 h-5 flex items-center justify-center leading-none rounded hover:bg-secondary"
                           title="เพิ่ม priority"
                         >
                           ▲
                         </button>
                         <button
                           onClick={() => onPriorityDown(task.id, task.priority)}
-                          className="text-[var(--faint)] hover:text-foreground text-xs w-4 h-3.5 flex items-center justify-center leading-none"
+                          className="text-[var(--faint)] hover:text-foreground text-xs w-5 h-5 flex items-center justify-center leading-none rounded hover:bg-secondary"
                           title="ลด priority"
                         >
                           ▼
@@ -155,38 +156,34 @@ export function ScheduleMain({
                       </div>
                     )}
 
-                    {/* Start button */}
                     {!isActive && !isDone && (
                       <button
                         onClick={() => onSelect(task.id)}
-                        className="shrink-0 text-xs font-medium text-muted-foreground hover:text-primary px-1.5 h-6 rounded-md transition-colors"
+                        className="text-xs font-medium text-muted-foreground hover:text-primary px-2 h-6 rounded-md transition-colors"
                       >
                         เริ่ม
                       </button>
                     )}
 
-                    {/* Edit + Delete — hover */}
-                    <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {!isDone && (
-                        <button
-                          onClick={() => startEdit(task)}
-                          className="text-[var(--faint)] hover:text-primary text-xs w-5 h-5 flex items-center justify-center rounded hover:bg-secondary"
-                          title="แก้ชื่อ"
-                        >
-                          ✎
-                        </button>
-                      )}
-                      {!isActive && (
-                        <button
-                          onClick={() => onDelete(task.id)}
-                          className="text-[var(--faint)] hover:text-[var(--danger)] text-xs w-5 h-5 flex items-center justify-center rounded hover:bg-secondary"
-                          title="ลบ task"
-                        >
-                          🗑
-                        </button>
-                      )}
-                    </div>
-                  </>
+                    {!isDone && (
+                      <button
+                        onClick={() => startEdit(task)}
+                        className="text-[var(--faint)] hover:text-primary text-xs w-6 h-6 flex items-center justify-center rounded hover:bg-secondary"
+                        title="แก้ชื่อ"
+                      >
+                        ✎
+                      </button>
+                    )}
+                    {!isActive && (
+                      <button
+                        onClick={() => onDelete(task.id)}
+                        className="text-[var(--faint)] hover:text-[var(--danger)] text-xs w-6 h-6 flex items-center justify-center rounded hover:bg-secondary"
+                        title="ลบ task"
+                      >
+                        🗑
+                      </button>
+                    )}
+                  </div>
                 )}
               </li>
             );
