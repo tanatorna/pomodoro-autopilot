@@ -19,7 +19,7 @@ type SidePanel = "schedule" | "backlog" | "settings";
 const PANEL_LABELS: Record<SidePanel, string> = {
   schedule: "Schedule",
   backlog: "Backlog",
-  settings: "⚙️",
+  settings: "Setting",
 };
 
 export function PomodoroApp() {
@@ -150,6 +150,18 @@ export function PomodoroApp() {
     if (patch.estimatedPomodoros !== undefined) await generateSchedule();
   }
 
+  /** ย้าย task จาก Schedule ไป Backlog (ไม่ทำวันนี้แล้ว) — เคลียร์วันที่ปักไว้ */
+  async function handleMoveToBacklog(taskId: number) {
+    await fetch(`/api/tasks/${taskId}`, {
+      method: "PATCH",
+      headers: roomHeaders,
+      body: JSON.stringify({ status: "backlog", scheduledFor: null }),
+    });
+    await Promise.all([loadTasks(), loadBacklog(), generateSchedule()]);
+    const t = tasks.find((x) => x.id === taskId);
+    showToast(`📥 ย้าย “${t?.title ?? "task"}” ไป Backlog`);
+  }
+
   /** ลบ task ทิ้ง */
   async function handleDeleteTask(taskId: number) {
     await fetch(`/api/tasks/${taskId}`, {
@@ -178,6 +190,17 @@ export function PomodoroApp() {
     });
     await loadTasks();
     await generateSchedule();
+  }
+
+  /** ปักวัน / เคลียร์วันให้ task ใน backlog */
+  async function handleScheduleTask(taskId: number, isoDate: string | null) {
+    await fetch(`/api/tasks/${taskId}`, {
+      method: "PATCH",
+      headers: roomHeaders,
+      body: JSON.stringify({ scheduledFor: isoDate }),
+    });
+    // ถ้าใส่วันที่ ≤ วันนี้ → API จะ auto-promote ตอน fetch ครั้งหน้า
+    await Promise.all([loadTasks(), loadBacklog()]);
   }
 
   // ─── Backlog ──────────────────────────────
@@ -330,6 +353,7 @@ export function PomodoroApp() {
                 onPriorityUp={handlePriorityUp}
                 onPriorityDown={handlePriorityDown}
                 onEdit={handleEditTask}
+                onMoveToBacklog={handleMoveToBacklog}
                 onDelete={handleDeleteTask}
                 onEndDay={handleEndDay}
                 endingDay={endingDay}
@@ -341,6 +365,7 @@ export function PomodoroApp() {
                 tasks={backlog}
                 onAdd={handleAddToBacklog}
                 onMoveToActive={handleMoveToActive}
+                onScheduleTask={handleScheduleTask}
               />
             )}
 

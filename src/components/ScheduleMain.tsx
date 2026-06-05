@@ -13,6 +13,8 @@ interface ScheduleMainProps {
   onPriorityUp: (taskId: number, current: number) => Promise<void>;
   onPriorityDown: (taskId: number, current: number) => Promise<void>;
   onEdit: (taskId: number, patch: { title?: string; estimatedPomodoros?: number }) => Promise<void>;
+  /** ย้าย task ไป backlog (ไม่ทำวันนี้แล้ว) */
+  onMoveToBacklog: (taskId: number) => Promise<void>;
   onDelete: (taskId: number) => Promise<void>;
   onEndDay: () => Promise<void>;
   endingDay: boolean;
@@ -30,6 +32,7 @@ export function ScheduleMain({
   onPriorityUp,
   onPriorityDown,
   onEdit,
+  onMoveToBacklog,
   onDelete,
   onEndDay,
   endingDay,
@@ -208,6 +211,15 @@ export function ScheduleMain({
                         title="แก้ชื่อ"
                       >
                         ✎
+                      </button>
+                    )}
+                    {!isActive && !isDone && (
+                      <button
+                        onClick={() => onMoveToBacklog(task.id)}
+                        className="text-[var(--faint)] hover:text-foreground text-xs w-6 h-6 flex items-center justify-center rounded hover:bg-secondary"
+                        title="ยังไม่ทำวันนี้ — ย้ายไป Backlog"
+                      >
+                        📥
                       </button>
                     )}
                     {!isActive && (

@@ -63,6 +63,16 @@ for (const t of ["Task", "Session", "ScheduleSlot"]) {
   }
 }
 
+// 1.5) Task.scheduledFor (สำหรับ backlog ที่ปักวันได้)
+if (await tableExists("Task")) {
+  const cols = await columnNames("Task");
+  if (cols.includes("scheduledFor")) {
+    console.log(`✓ Task.scheduledFor มีอยู่แล้ว — ข้าม`);
+  } else {
+    await run("ADD COLUMN Task.scheduledFor", `ALTER TABLE "Task" ADD COLUMN "scheduledFor" DATETIME`);
+  }
+}
+
 // 2) index บน roomId
 await run("index Task.roomId", `CREATE INDEX IF NOT EXISTS "Task_roomId_idx" ON "Task"("roomId")`);
 await run("index Session.roomId", `CREATE INDEX IF NOT EXISTS "Session_roomId_idx" ON "Session"("roomId")`);

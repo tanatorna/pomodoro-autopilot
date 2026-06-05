@@ -18,6 +18,7 @@ model Task {
   estimatedPomodoros  Int           @default(1)
   completedPomodoros  Int           @default(0)
   status              String        @default("pending") // pending | in-progress | done | backlog
+  scheduledFor        DateTime?     // backlog task ปักวันได้ · ถึงวัน → auto-promote เป็น pending
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
   slots               ScheduleSlot[]

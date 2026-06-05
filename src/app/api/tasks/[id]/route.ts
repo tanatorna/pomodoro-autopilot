@@ -6,6 +6,8 @@ type PatchBody = {
   priority?: number;
   status?: string;
   estimatedPomodoros?: number;
+  /** ISO string (YYYY-MM-DD) หรือ null = เคลียร์วัน */
+  scheduledFor?: string | null;
 };
 
 export async function PATCH(
@@ -33,6 +35,9 @@ export async function PATCH(
         ...(body.status !== undefined && { status: body.status }),
         ...(body.estimatedPomodoros !== undefined && {
           estimatedPomodoros: body.estimatedPomodoros,
+        }),
+        ...(body.scheduledFor !== undefined && {
+          scheduledFor: body.scheduledFor ? new Date(body.scheduledFor) : null,
         }),
       },
     });
