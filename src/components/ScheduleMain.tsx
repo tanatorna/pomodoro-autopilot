@@ -79,7 +79,7 @@ export function ScheduleMain({
       {sorted.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-2 py-10 text-center">
           <span className="text-3xl opacity-60">🗒️</span>
-          <p className="text-muted-foreground text-sm max-w-[220px]">
+          <p className="text-[var(--ink-soft)] text-sm max-w-[220px]">
             ยังไม่มี task วันนี้ — พิมพ์ด้านบนเพื่อ brain dump…
           </p>
         </div>

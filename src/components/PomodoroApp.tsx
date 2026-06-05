@@ -302,8 +302,10 @@ export function PomodoroApp() {
         </div>
       </main>
 
-      {/* Panel — ฝั่งขวา 40% · กระจกเต็มความสูงถึงขอบบน */}
-      <aside className="paper-panel order-2 flex flex-col border-t md:border-t-0 md:border-l border-border min-h-[56vh] md:min-h-0 md:overflow-hidden">
+      {/* Panel — ฝั่งขวา 40% · กระจกเต็มความสูงถึงขอบบน
+          NOTE: ห้ามใส่ overflow-hidden ที่นี่ — dropdown (room/account) ใช้ absolute
+          กับ position ของปุ่ม → ล้นซ้ายเลย panel · ให้ scroll control อยู่ใน content div ข้างใน */}
+      <aside className="paper-panel order-2 flex flex-col border-t md:border-t-0 md:border-l border-border min-h-[56vh] md:min-h-0 md:h-full">
 
         {/* Controls (room + account) — หัว panel */}
         <div className="flex items-center justify-end gap-2 px-4 h-14 shrink-0">

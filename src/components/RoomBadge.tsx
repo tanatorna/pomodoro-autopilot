@@ -129,9 +129,14 @@ export function RoomBadge({
           />
 
           <div
-            className="absolute top-full right-0 mt-2 z-50 paper-panel pm-pop
+            className="absolute top-full right-0 mt-2 z-50 pm-pop
               border border-border rounded-2xl p-4 w-80"
-            style={{ boxShadow: "0 14px 40px rgba(120,80,40,0.16)" }}
+            style={{
+              background: "rgba(255, 252, 246, 0.96)",
+              backdropFilter: "blur(22px) saturate(140%)",
+              WebkitBackdropFilter: "blur(22px) saturate(140%)",
+              boxShadow: "0 14px 40px rgba(120,80,40,0.22)",
+            }}
           >
             {/* ── ห้องปัจจุบัน ── */}
             <p className="text-xs font-semibold text-[var(--ink-soft)] mb-1">ห้องปัจจุบัน</p>
