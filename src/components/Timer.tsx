@@ -18,6 +18,8 @@ interface TimerProps {
   onPause: () => void;
   onResume: () => void;
   onRestart: () => void;
+  /** ข้าม task ปัจจุบัน → ไป task ถัดไปอัตโนมัติ (โผล่ตอน WORK/PAUSED) */
+  onSkip?: () => void;
 }
 
 const LABELS: Record<TimerState["state"], string> = {
@@ -60,6 +62,7 @@ export function Timer({
   onPause,
   onResume,
   onRestart,
+  onSkip,
 }: TimerProps) {
   const state = timerState.state;
   const color = stateColor(state);
@@ -270,6 +273,17 @@ export function Timer({
           </button>
         )}
       </div>
+
+      {/* Skip (secondary) — เฉพาะตอน WORK/PAUSED ที่กำลังทำ task อยู่ */}
+      {onSkip && (state === "WORK" || isPaused) && timerState.currentTaskId !== null && (
+        <button
+          onClick={onSkip}
+          className="-mt-2 text-xs text-muted-foreground hover:text-foreground underline decoration-dotted"
+          title="ข้าม task นี้ไปทำตัวถัดไป"
+        >
+          ⏭ ข้าม task นี้
+        </button>
+      )}
     </div>
   );
 }

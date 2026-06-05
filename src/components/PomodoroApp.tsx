@@ -36,13 +36,20 @@ export function PomodoroApp() {
   }, [accountRoom, roomId, setRoom]);
   const {
     timerState, display, remainingMs, loading,
-    handleStart, handlePause, handleResume, handleRestart, refresh,
+    handleStart, handlePause, handleResume, handleRestart,
+    handleSwitchTask, handleSkip, refresh,
   } = usePomodoro(durations, roomHeaders);
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [backlog, setBacklog] = useState<Task[]>([]);
   const [panel, setPanel] = useState<SidePanel>("schedule");
   const [endingDay, setEndingDay] = useState(false);
+
+  // ── confirm dialog สำหรับ switch/skip ──
+  // kind=switch: เปลี่ยนไป task ใหม่ที่ระบุ · kind=skip: ข้ามไป task ถัดไปอัตโนมัติ
+  const [pendingSwitch, setPendingSwitch] = useState<
+    { kind: "switch"; toId: number; toTitle: string } | { kind: "skip" } | null
+  >(null);
 
   // ── toast (feedback แทน reload) ──
   const [toast, setToast] = useState<string | null>(null);
@@ -98,7 +105,34 @@ export function PomodoroApp() {
   }
 
   async function handleSelectAndStart(taskId: number) {
+    const running =
+      timerState.state === "WORK" ||
+      timerState.state === "PAUSED" ||
+      timerState.state === "SHORT_BREAK" ||
+      timerState.state === "LONG_BREAK";
+
+    // ถ้า running อยู่และเลือก task อื่น → ขอ confirm switch (ลูกปัจจุบันจะไม่นับ)
+    if (running && taskId !== timerState.currentTaskId) {
+      const target = tasks.find((t) => t.id === taskId);
+      setPendingSwitch({ kind: "switch", toId: taskId, toTitle: target?.title ?? "task" });
+      return;
+    }
     await handleStart(taskId);
+  }
+
+  async function confirmSwitchOrSkip() {
+    if (!pendingSwitch) return;
+    if (pendingSwitch.kind === "switch") {
+      await handleSwitchTask(pendingSwitch.toId);
+      await loadTasks();
+      showToast(`🔀 เปลี่ยนเป็น “${pendingSwitch.toTitle}”`);
+    } else {
+      const currentTitle = currentTask?.title ?? "task";
+      await handleSkip();
+      await loadTasks();
+      showToast(`⏭ ข้าม “${currentTitle}”`);
+    }
+    setPendingSwitch(null);
   }
 
   /** แก้ชื่อ task (เช่น พิมพ์ผิด) */
@@ -235,6 +269,7 @@ export function PomodoroApp() {
             onPause={handlePause}
             onResume={handleResume}
             onRestart={handleRestart}
+            onSkip={() => setPendingSwitch({ kind: "skip" })}
           />
         </div>
       </main>
@@ -318,6 +353,42 @@ export function PomodoroApp() {
         visible={timerState.state === "WORK" || timerState.state === "PAUSED"}
         onInterrupt={handleInterrupt}
       />
+
+      {/* Confirm switch / skip */}
+      {pendingSwitch && (
+        <>
+          <div className="fixed inset-0 z-[55] bg-black/30" onClick={() => setPendingSwitch(null)} />
+          <div
+            className="paper-panel pm-pop fixed left-1/2 top-1/2 z-[60] -translate-x-1/2 -translate-y-1/2
+              border border-border rounded-2xl p-5 w-[min(420px,90vw)]"
+            style={{ boxShadow: "0 24px 70px rgba(40,28,18,0.28)" }}
+          >
+            <p className="text-base font-semibold text-foreground mb-1.5">
+              {pendingSwitch.kind === "switch"
+                ? `เปลี่ยนไปทำ “${pendingSwitch.toTitle}”?`
+                : `ข้าม “${currentTask?.title ?? "task นี้"}”?`}
+            </p>
+            <p className="text-sm text-[var(--ink-soft)] mb-4">
+              ลูก Pomodoro ของ <strong>{currentTask?.title ?? "task ปัจจุบัน"}</strong> ที่ทำค้างอยู่
+              <strong> จะไม่ถูกนับ</strong> (เริ่มลูกใหม่ที่ 25:00)
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setPendingSwitch(null)}
+                className="px-4 py-2 rounded-lg text-sm text-[var(--ink-soft)] hover:bg-secondary"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={confirmSwitchOrSkip}
+                className="px-4 py-2 rounded-lg bg-primary hover:bg-[var(--accent-hover)] text-primary-foreground text-sm font-semibold"
+              >
+                ยืนยัน
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Toast (feedback) */}
       {toast && (

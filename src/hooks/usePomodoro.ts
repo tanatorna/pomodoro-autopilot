@@ -24,6 +24,8 @@ interface UsePomodoroReturn {
   handlePause: () => Promise<void>;
   handleResume: () => Promise<void>;
   handleRestart: () => Promise<void>;
+  handleSwitchTask: (taskId: number) => Promise<void>;
+  handleSkip: () => Promise<void>;
   refresh: () => Promise<void>;
 }
 
@@ -203,6 +205,28 @@ export function usePomodoro(
     setRemainingMs(next.endsAt ? computeRemaining(next.endsAt, Date.now()) : 0);
   }, []);
 
+  /** เปลี่ยนไป task อื่นกลางคัน — void ลูกปัจจุบัน + start WORK ใหม่ */
+  const handleSwitchTask = useCallback(async (taskId: number) => {
+    const next = await callSessionAPI(
+      { action: "switch", taskId, durations: durationsRef.current },
+      headersRef.current
+    );
+    setTimerState(next);
+    timerStateRef.current = next;
+    setRemainingMs(next.endsAt ? computeRemaining(next.endsAt, Date.now()) : 0);
+  }, []);
+
+  /** ข้าม task ปัจจุบัน → ไป task ถัดไปอัตโนมัติ */
+  const handleSkip = useCallback(async () => {
+    const next = await callSessionAPI(
+      { action: "skip", durations: durationsRef.current },
+      headersRef.current
+    );
+    setTimerState(next);
+    timerStateRef.current = next;
+    setRemainingMs(next.endsAt ? computeRemaining(next.endsAt, Date.now()) : 0);
+  }, []);
+
   return {
     timerState,
     display: formatTime(remainingMs),
@@ -212,6 +236,8 @@ export function usePomodoro(
     handlePause,
     handleResume,
     handleRestart,
+    handleSwitchTask,
+    handleSkip,
     refresh,
   };
 }

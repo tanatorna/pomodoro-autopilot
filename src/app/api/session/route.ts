@@ -2,7 +2,34 @@ import { prisma } from "@/lib/prisma";
 import { getRoomId } from "@/lib/room";
 import { dbToTimerState, timerStateToDb } from "@/lib/sessionMapper";
 import { start, pause, resume, restart, tick, type DurationConfig } from "@/engine/transitions";
-import { INITIAL_STATE } from "@/engine/types";
+import { DURATIONS, INITIAL_STATE, type TimerState } from "@/engine/types";
+
+/** void current pending slot (ลูกที่กำลังทำ) — ใช้กับ switch/skip */
+async function voidCurrentSlot(roomId: string) {
+  const slot = await prisma.scheduleSlot.findFirst({
+    where: { roomId, status: "pending" },
+    orderBy: { slotIndex: "asc" },
+  });
+  if (slot) {
+    await prisma.scheduleSlot.update({
+      where: { id: slot.id },
+      data: { status: "voided" },
+    });
+  }
+}
+
+/** สร้าง state WORK ใหม่ผูกกับ taskId (ใช้ตอน switch / skip) */
+function workWith(current: TimerState, nowMs: number, taskId: number | null, custom?: Partial<DurationConfig>): TimerState {
+  const workMs = custom?.WORK ?? DURATIONS.WORK;
+  return {
+    state: "WORK",
+    endsAt: nowMs + workMs,
+    remainingMs: null,
+    origin: null,
+    completedPomodoros: current.completedPomodoros,
+    currentTaskId: taskId,
+  };
+}
 
 async function getOrCreateSession(roomId: string) {
   const existing = await prisma.session.findFirst({
@@ -24,7 +51,9 @@ type SessionAction =
   | { action: "pause" }
   | { action: "resume" }
   | { action: "restart"; durations?: Partial<DurationConfig> }
-  | { action: "expire"; durations?: Partial<DurationConfig> };
+  | { action: "expire"; durations?: Partial<DurationConfig> }
+  | { action: "switch"; taskId: number; durations?: Partial<DurationConfig> }
+  | { action: "skip"; durations?: Partial<DurationConfig> };
 
 export async function POST(request: Request) {
   const roomId = getRoomId(request);
@@ -51,6 +80,30 @@ export async function POST(request: Request) {
     case "expire":
       next = tick(current, nowMs, body.durations);
       break;
+    case "switch": {
+      // เปลี่ยน task ที่กำลังทำ → void ลูกปัจจุบัน + start WORK ใหม่กับ taskId
+      await voidCurrentSlot(roomId);
+      next = workWith(current, nowMs, body.taskId, body.durations);
+      break;
+    }
+    case "skip": {
+      // ข้าม task ปัจจุบัน → void + ไป task ถัดไปอัตโนมัติ (หรือ IDLE ถ้าคิวว่าง)
+      await voidCurrentSlot(roomId);
+      const nextTask = await prisma.task.findFirst({
+        where: {
+          roomId,
+          status: { in: ["pending", "in-progress"] },
+          ...(current.currentTaskId != null ? { id: { not: current.currentTaskId } } : {}),
+        },
+        orderBy: [{ priority: "desc" }, { id: "asc" }],
+      });
+      if (nextTask) {
+        next = workWith(current, nowMs, nextTask.id, body.durations);
+      } else {
+        next = { ...INITIAL_STATE, completedPomodoros: current.completedPomodoros };
+      }
+      break;
+    }
     default:
       return Response.json({ error: "unknown action" }, { status: 400 });
   }
