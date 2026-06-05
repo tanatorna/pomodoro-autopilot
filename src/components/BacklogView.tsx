@@ -40,7 +40,7 @@ export function BacklogView({ tasks, onAdd, onMoveToActive }: BacklogViewProps) 
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-card border border-border"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-[var(--ink-soft)] truncate">{task.title}</p>
+                  <p className="text-sm text-[var(--ink-soft)] truncate" title={task.title}>{task.title}</p>
                   <p className="text-xs text-[var(--faint)] mt-0.5">
                     {task.completedPomodoros}/{task.estimatedPomodoros} 🍅
                   </p>

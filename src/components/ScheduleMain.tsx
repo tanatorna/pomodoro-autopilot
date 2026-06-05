@@ -116,7 +116,7 @@ export function ScheduleMain({
                 ) : (
                   <span
                     onDoubleClick={() => !isDone && startEdit(task)}
-                    title={isDone ? undefined : "ดับเบิลคลิกเพื่อแก้ชื่อ"}
+                    title={task.title}
                     className={`flex-1 text-sm truncate min-w-0
                       ${isDone
                         ? "line-through text-muted-foreground"
