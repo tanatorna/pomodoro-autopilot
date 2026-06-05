@@ -71,7 +71,10 @@ export function Timer({
   const dots = ((timerState.completedPomodoros % perLong) + perLong) % perLong;
 
   return (
-    <div className="flex flex-col items-center gap-6 select-none text-center">
+    <div
+      className="flex flex-col items-center gap-6 select-none text-center"
+      style={{ textShadow: "0 1px 12px rgba(255,249,241,0.8)" }}
+    >
       {/* State badge — outline italic (Newsreader) */}
       <span
         className="inline-flex items-center rounded-full px-4 py-1.5 text-[15px] italic"
@@ -125,6 +128,7 @@ export function Timer({
               fontWeight: 500,
               fontSize: 56,
               fontVariantNumeric: "tabular-nums",
+              textShadow: "0 2px 20px rgba(255,249,241,0.85)",
             }}
           >
             {digits}

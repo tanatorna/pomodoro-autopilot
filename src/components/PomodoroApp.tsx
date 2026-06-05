@@ -197,11 +197,11 @@ export function PomodoroApp() {
 
   return (
     <div className="min-h-screen ember-bg text-foreground flex flex-col">
-      {/* Header (~56px) */}
-      <header className="h-14 px-4 sm:px-6 flex items-center justify-between gap-2 shrink-0 border-b border-border paper-panel">
+      {/* Header — โปร่งใส กลืนกับพื้นหลัง */}
+      <header className="h-14 px-4 sm:px-6 flex items-center justify-between gap-2 shrink-0 relative z-20">
         <h1
           className="text-lg font-semibold text-foreground whitespace-nowrap"
-          style={{ fontFamily: "var(--font-heading)" }}
+          style={{ fontFamily: "var(--font-heading)", textShadow: "0 1px 14px rgba(255,248,240,0.75)" }}
         >
           🍅 Autopilot
         </h1>
@@ -221,12 +221,16 @@ export function PomodoroApp() {
       {/* Split 50/50: desktop = 2 คอลัมน์ (timer ซ้าย, panel ขวา) · mobile = stack (timer บน) */}
       <div className="flex flex-col md:grid md:grid-cols-2 md:h-[calc(100vh-3.5rem)]">
 
-        {/* Timer (hero) — ครึ่งซ้าย · การ์ดกระจกลอยเหนือรูป */}
-        <main className="flex items-center justify-center p-5 sm:p-8">
+        {/* Timer (hero) — ลอยบนรูปตรงๆ · มีแสงนวลกลมๆ ช่วยให้อ่านออก ไม่มีขอบการ์ด */}
+        <main className="relative flex items-center justify-center p-5 sm:p-8">
           <div
-            className="paper-panel rounded-3xl border border-[var(--border-strong)] px-6 py-10 sm:px-12"
-            style={{ boxShadow: "0 24px 70px rgba(40,28,18,0.28)" }}
-          >
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(closest-side at 50% 46%, rgba(255,249,241,0.6), rgba(255,249,241,0) 72%)",
+            }}
+          />
+          <div className="relative">
             <Timer
               timerState={timerState}
               display={display}
