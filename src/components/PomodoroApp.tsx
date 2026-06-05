@@ -221,21 +221,26 @@ export function PomodoroApp() {
       {/* Split 50/50: desktop = 2 คอลัมน์ (timer ซ้าย, panel ขวา) · mobile = stack (timer บน) */}
       <div className="flex flex-col md:grid md:grid-cols-2 md:h-[calc(100vh-3.5rem)]">
 
-        {/* Timer (hero) — ครึ่งซ้าย */}
-        <main className="flex items-center justify-center px-4 py-9 md:py-0 md:border-r border-border">
-          <Timer
-            timerState={timerState}
-            display={display}
-            remainingMs={remainingMs}
-            totalMs={totalMs}
-            loading={loading}
-            currentTaskTitle={currentTask?.title ?? null}
-            perLong={durations.POMODOROS_PER_LONG_BREAK}
-            onStart={() => handleStart()}
-            onPause={handlePause}
-            onResume={handleResume}
-            onRestart={handleRestart}
-          />
+        {/* Timer (hero) — ครึ่งซ้าย · การ์ดกระจกลอยเหนือรูป */}
+        <main className="flex items-center justify-center p-5 sm:p-8">
+          <div
+            className="paper-panel rounded-3xl border border-[var(--border-strong)] px-6 py-10 sm:px-12"
+            style={{ boxShadow: "0 24px 70px rgba(40,28,18,0.28)" }}
+          >
+            <Timer
+              timerState={timerState}
+              display={display}
+              remainingMs={remainingMs}
+              totalMs={totalMs}
+              loading={loading}
+              currentTaskTitle={currentTask?.title ?? null}
+              perLong={durations.POMODOROS_PER_LONG_BREAK}
+              onStart={() => handleStart()}
+              onPause={handlePause}
+              onResume={handleResume}
+              onRestart={handleRestart}
+            />
+          </div>
         </main>
 
         {/* Panel — ครึ่งขวา */}
