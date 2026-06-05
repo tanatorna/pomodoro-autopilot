@@ -196,16 +196,46 @@ export function PomodoroApp() {
     tasks.find((t) => t.id === timerState.currentTaskId) ?? null;
 
   return (
-    <div className="min-h-screen ember-bg text-foreground flex flex-col">
-      {/* Header — โปร่งใส กลืนกับพื้นหลัง */}
-      <header className="h-14 px-4 sm:px-6 flex items-center justify-between gap-2 shrink-0 relative z-20">
-        <h1
-          className="text-lg font-semibold text-foreground whitespace-nowrap"
-          style={{ fontFamily: "var(--font-heading)", textShadow: "0 1px 14px rgba(255,248,240,0.75)" }}
-        >
-          🍅 Autopilot
-        </h1>
-        <div className="flex items-center gap-2 shrink-0">
+    <div className="min-h-screen ember-bg text-foreground relative flex flex-col md:grid md:grid-cols-[3fr_2fr] md:h-screen">
+      {/* Logo — ลอยมุมซ้ายบน กลืนกับพื้นหลัง */}
+      <h1
+        className="absolute top-0 left-0 h-14 flex items-center px-4 sm:px-6 z-30 text-lg font-semibold text-foreground whitespace-nowrap"
+        style={{ fontFamily: "var(--font-heading)", textShadow: "0 1px 14px rgba(255,248,240,0.75)" }}
+      >
+        🍅 Autopilot
+      </h1>
+
+      {/* Timer (hero) — ฝั่งซ้าย 60% · ลอยบนรูปตรงๆ */}
+      <main className="relative flex items-center justify-center p-5 sm:p-8 pt-16 md:pt-8 order-1">
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(closest-side at 50% 46%, rgba(255,249,241,0.6), rgba(255,249,241,0) 72%)",
+          }}
+        />
+        <div className="relative">
+          <Timer
+            timerState={timerState}
+            display={display}
+            remainingMs={remainingMs}
+            totalMs={totalMs}
+            loading={loading}
+            currentTaskTitle={currentTask?.title ?? null}
+            perLong={durations.POMODOROS_PER_LONG_BREAK}
+            onStart={() => handleStart()}
+            onPause={handlePause}
+            onResume={handleResume}
+            onRestart={handleRestart}
+          />
+        </div>
+      </main>
+
+      {/* Panel — ฝั่งขวา 40% · กระจกเต็มความสูงถึงขอบบน */}
+      <aside className="paper-panel order-2 flex flex-col border-t md:border-t-0 md:border-l border-border min-h-[56vh] md:min-h-0 md:overflow-hidden">
+
+        {/* Controls (room + account) — หัว panel */}
+        <div className="flex items-center justify-end gap-2 px-4 h-14 shrink-0">
           <RoomBadge
             roomId={roomId}
             onChangeRoom={setRoom}
@@ -216,39 +246,6 @@ export function PomodoroApp() {
           />
           <AccountButton roomId={roomId} roomHeaders={roomHeaders} />
         </div>
-      </header>
-
-      {/* Split 50/50: desktop = 2 คอลัมน์ (timer ซ้าย, panel ขวา) · mobile = stack (timer บน) */}
-      <div className="flex flex-col md:grid md:grid-cols-2 md:h-[calc(100vh-3.5rem)]">
-
-        {/* Timer (hero) — ลอยบนรูปตรงๆ · มีแสงนวลกลมๆ ช่วยให้อ่านออก ไม่มีขอบการ์ด */}
-        <main className="relative flex items-center justify-center p-5 sm:p-8">
-          <div
-            className="pointer-events-none absolute inset-0"
-            style={{
-              background:
-                "radial-gradient(closest-side at 50% 46%, rgba(255,249,241,0.6), rgba(255,249,241,0) 72%)",
-            }}
-          />
-          <div className="relative">
-            <Timer
-              timerState={timerState}
-              display={display}
-              remainingMs={remainingMs}
-              totalMs={totalMs}
-              loading={loading}
-              currentTaskTitle={currentTask?.title ?? null}
-              perLong={durations.POMODOROS_PER_LONG_BREAK}
-              onStart={() => handleStart()}
-              onPause={handlePause}
-              onResume={handleResume}
-              onRestart={handleRestart}
-            />
-          </div>
-        </main>
-
-        {/* Panel — ครึ่งขวา */}
-        <aside className="paper-panel flex flex-col border-t md:border-t-0 border-border min-h-[56vh] md:min-h-0 md:overflow-hidden">
 
           {/* Tab switcher */}
           <div className="flex border-b border-border shrink-0">
@@ -307,7 +304,6 @@ export function PomodoroApp() {
             )}
           </div>
         </aside>
-      </div>
 
       {/* Interrupt button */}
       <InterruptButton
