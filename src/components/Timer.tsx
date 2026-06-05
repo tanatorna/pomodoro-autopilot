@@ -100,7 +100,7 @@ export function Timer({
       <span
         className="inline-flex items-center rounded-full px-4 py-1.5 text-[15px] italic"
         style={{
-          fontFamily: "var(--font-heading)",
+          fontFamily: "var(--font-heading), var(--font-sans), system-ui, sans-serif",
           border: `1.5px solid ${color}`,
           color,
         }}
@@ -212,7 +212,7 @@ export function Timer({
           <span
             className="text-foreground leading-none"
             style={{
-              fontFamily: "var(--font-heading)",
+              fontFamily: "var(--font-heading), var(--font-sans), system-ui, sans-serif",
               fontWeight: 500,
               fontSize: 56,
               fontVariantNumeric: "tabular-nums",
