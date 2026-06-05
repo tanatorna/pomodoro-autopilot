@@ -155,3 +155,20 @@
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
 }
+
+/* micro-interactions */
+.pm-pop {
+  animation: pmPop 0.16s cubic-bezier(0.2, 0.8, 0.3, 1);
+  transform-origin: top right;
+}
+@keyframes pmPop {
+  from { opacity: 0; transform: scale(0.96) translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+.pm-toast {
+  animation: pmToast 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+@keyframes pmToast {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px) scale(0.96); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}

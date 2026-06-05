@@ -24,6 +24,7 @@ interface UsePomodoroReturn {
   handlePause: () => Promise<void>;
   handleResume: () => Promise<void>;
   handleRestart: () => Promise<void>;
+  refresh: () => Promise<void>;
 }
 
 async function callSessionAPI(
@@ -102,6 +103,18 @@ export function usePomodoro(
       })
       .finally(() => setLoading(false));
   }, [roomHeaders]);
+
+  // ─── re-fetch session จาก server (ใช้แทน reload หลัง endDay/interrupt) ─
+  const refresh = useCallback(async () => {
+    const headers = headersRef.current;
+    if (!headers["X-Room-Id"]) return;
+    const next = (await (await fetch("/api/session", { headers })).json()) as TimerState;
+    setTimerState(next);
+    timerStateRef.current = next;
+    setRemainingMs(
+      next.endsAt ? computeRemaining(next.endsAt, Date.now()) : next.remainingMs ?? 0
+    );
+  }, []);
 
   // ─── ขอ permission แจ้งเตือน (ครั้งเดียวตอน mount) ─
   useEffect(() => {
@@ -199,5 +212,6 @@ export function usePomodoro(
     handlePause,
     handleResume,
     handleRestart,
+    refresh,
   };
 }

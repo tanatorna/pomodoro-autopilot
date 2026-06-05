@@ -58,7 +58,7 @@ export function AccountButton({ roomId, roomHeaders }: AccountButtonProps) {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div
-            className="absolute top-full right-0 mt-2 z-50 paper-panel
+            className="absolute top-full right-0 mt-2 z-50 paper-panel pm-pop
               border border-border rounded-2xl p-4 w-72"
             style={{ boxShadow: "0 14px 40px rgba(120,80,40,0.16)" }}
           >

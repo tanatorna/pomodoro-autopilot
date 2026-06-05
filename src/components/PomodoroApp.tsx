@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Task } from "@/generated/prisma/client";
 import { usePomodoro } from "@/hooks/usePomodoro";
 import { useSettings } from "@/hooks/useSettings";
@@ -36,13 +36,22 @@ export function PomodoroApp() {
   }, [accountRoom, roomId, setRoom]);
   const {
     timerState, display, remainingMs, loading,
-    handleStart, handlePause, handleResume, handleRestart,
+    handleStart, handlePause, handleResume, handleRestart, refresh,
   } = usePomodoro(durations, roomHeaders);
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [backlog, setBacklog] = useState<Task[]>([]);
   const [panel, setPanel] = useState<SidePanel>("schedule");
   const [endingDay, setEndingDay] = useState(false);
+
+  // ── toast (feedback แทน reload) ──
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 3200);
+  }, []);
 
   // ─── Loaders ──────────────────────────────
   const loadTasks = useCallback(async () => {
@@ -147,11 +156,17 @@ export function PomodoroApp() {
   // ─── End of day ───────────────────────────
   async function handleEndDay() {
     setEndingDay(true);
-    await fetch("/api/backlog", { method: "POST", headers: roomHeaders });
-    await Promise.all([loadTasks(), loadBacklog()]);
+    const res = await fetch("/api/backlog", { method: "POST", headers: roomHeaders });
+    const data = (await res.json().catch(() => null)) as
+      | { summary?: { movedToBacklog?: number } }
+      | null;
+    await Promise.all([loadTasks(), loadBacklog(), refresh()]); // re-fetch แทน reload (จอไม่กระพริบ)
     setEndingDay(false);
     setPanel("backlog");
-    window.location.reload();
+    const moved = data?.summary?.movedToBacklog;
+    showToast(
+      `🌙 จบวันแล้ว${typeof moved === "number" ? ` — ย้าย ${moved} task ไป Backlog` : ""}`
+    );
   }
 
   // ─── Interrupt ────────────────────────────
@@ -161,7 +176,8 @@ export function PomodoroApp() {
       headers: roomHeaders,
       body: JSON.stringify({ title }),
     });
-    window.location.reload();
+    await Promise.all([loadTasks(), generateSchedule(), refresh()]); // re-fetch แทน reload
+    showToast(`⚡ แทรกงานด่วน — ${title}`);
   }
 
   // ─── Derived ──────────────────────────────
@@ -289,6 +305,18 @@ export function PomodoroApp() {
         visible={timerState.state === "WORK" || timerState.state === "PAUSED"}
         onInterrupt={handleInterrupt}
       />
+
+      {/* Toast (feedback) */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] pm-toast">
+          <div
+            className="paper-panel border border-border rounded-xl px-4 py-2.5 text-sm text-foreground"
+            style={{ boxShadow: "0 14px 40px rgba(120,80,40,0.16)" }}
+          >
+            {toast}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
