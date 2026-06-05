@@ -195,6 +195,13 @@ export function PomodoroApp() {
   const currentTask =
     tasks.find((t) => t.id === timerState.currentTaskId) ?? null;
 
+  // Pending tasks เรียง priority สูง→ต่ำ → id (ให้ Timer ใช้ preview/picker ตอน IDLE)
+  const pendingTasks = tasks
+    .filter((t) => t.status === "pending" || t.status === "in-progress")
+    .sort((a, b) =>
+      b.priority !== a.priority ? b.priority - a.priority : a.id - b.id
+    );
+
   return (
     <div className="min-h-screen ember-bg text-foreground relative flex flex-col md:grid md:grid-cols-[3fr_2fr] md:h-screen">
       {/* Logo — ลอยมุมซ้ายบน กลืนกับพื้นหลัง */}
@@ -223,7 +230,8 @@ export function PomodoroApp() {
             loading={loading}
             currentTaskTitle={currentTask?.title ?? null}
             perLong={durations.POMODOROS_PER_LONG_BREAK}
-            onStart={() => handleStart()}
+            pendingTasks={pendingTasks}
+            onStart={(taskId) => handleStart(taskId)}
             onPause={handlePause}
             onResume={handleResume}
             onRestart={handleRestart}

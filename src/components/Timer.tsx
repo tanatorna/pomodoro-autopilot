@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import type { Task } from "@/generated/prisma/client";
 import type { TimerState } from "@/engine";
 
 interface TimerProps {
@@ -10,7 +12,9 @@ interface TimerProps {
   loading: boolean;
   currentTaskTitle?: string | null;
   perLong?: number; // pomodoro dots ต่อรอบ long break (default 4)
-  onStart: () => void;
+  /** Task ที่ pending อยู่ — สำหรับ preview "task ถัดไป" + dropdown เปลี่ยน (IDLE state) */
+  pendingTasks?: Task[];
+  onStart: (taskId?: number) => void;
   onPause: () => void;
   onResume: () => void;
   onRestart: () => void;
@@ -51,6 +55,7 @@ export function Timer({
   loading,
   currentTaskTitle,
   perLong = 4,
+  pendingTasks = [],
   onStart,
   onPause,
   onResume,
@@ -61,6 +66,19 @@ export function Timer({
   const isPaused = state === "PAUSED";
   const isBreak = state === "SHORT_BREAK" || state === "LONG_BREAK";
   const isRunningish = state === "WORK" || isBreak || isPaused;
+
+  // ── IDLE: เลือก task ที่จะเริ่มด้วย (default = task แรกในคิว) ──
+  // value: number = id, null = "ไม่ผูก task"
+  const firstPendingId = pendingTasks[0]?.id ?? null;
+  const [selectedId, setSelectedId] = useState<number | null>(firstPendingId);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  // sync เมื่อคิวเปลี่ยน (เพิ่ม/ลบ task) และ user ยังไม่ได้เลือกเอง
+  useEffect(() => {
+    setSelectedId((prev) =>
+      prev !== null && pendingTasks.some((t) => t.id === prev) ? prev : firstPendingId
+    );
+  }, [firstPendingId, pendingTasks]);
+  const selectedTask = pendingTasks.find((t) => t.id === selectedId) ?? null;
 
   // IDLE → โชว์เวลาเต็ม (เช่น 25:00) · ระหว่างเดิน → วงแหวน "เดินหน้า" เติมเต็มตามเวลาที่ผ่านไป
   const showFullIdle = state === "IDLE";
@@ -87,17 +105,84 @@ export function Timer({
         {LABELS[state]}
       </span>
 
-      {/* Task line */}
-      <div className="min-h-[22px]">
+      {/* Task line / preview */}
+      <div className="min-h-[22px] relative z-30">
         {currentTaskTitle && (state === "WORK" || isPaused) ? (
           <p className="text-sm text-[var(--ink-soft)] max-w-xs">
             กำลังทำ · <span className="font-semibold text-foreground">{currentTaskTitle}</span>
           </p>
         ) : state === "IDLE" ? (
-          <p className="text-sm font-medium text-[var(--ink-soft)]">กดเริ่มเพื่อโฟกัส task แรกในคิว</p>
+          pendingTasks.length === 0 ? (
+            <p className="text-sm font-medium text-[var(--ink-soft)]">
+              ยังไม่มี task ในคิว — เพิ่ม task ทางด้านขวา
+            </p>
+          ) : (
+            <p className="text-sm font-medium text-[var(--ink-soft)]">
+              ถัดไป ·{" "}
+              <span className="text-foreground font-semibold">
+                {selectedTask?.title ?? "ไม่ผูก task"}
+              </span>{" "}
+              <button
+                type="button"
+                onClick={() => setPickerOpen((o) => !o)}
+                className="ml-1 underline decoration-dotted text-primary hover:text-[var(--accent-hover)]"
+              >
+                เปลี่ยน
+              </button>
+            </p>
+          )
         ) : isBreak ? (
           <p className="text-sm text-[var(--ink-soft)]">พักสายตา เดี๋ยวระบบเริ่มงานถัดไปให้เอง</p>
         ) : null}
+
+        {/* Picker dropdown — IDLE เท่านั้น */}
+        {state === "IDLE" && pickerOpen && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setPickerOpen(false)} />
+            <div
+              className="pm-pop absolute left-1/2 -translate-x-1/2 top-full mt-2 z-50
+                border border-border rounded-xl w-72 max-h-72 overflow-y-auto py-1 text-left"
+              style={{
+                background: "rgba(255, 252, 246, 0.96)",
+                backdropFilter: "blur(22px) saturate(140%)",
+                WebkitBackdropFilter: "blur(22px) saturate(140%)",
+                boxShadow: "0 14px 40px rgba(120,80,40,0.22)",
+              }}
+            >
+              {pendingTasks.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    setSelectedId(t.id);
+                    setPickerOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-secondary flex items-center gap-2
+                    ${t.id === selectedId ? "text-primary font-semibold" : "text-foreground"}`}
+                >
+                  <span className="text-xs text-[var(--faint)] w-4 shrink-0">
+                    {t.id === selectedId ? "✓" : ""}
+                  </span>
+                  <span className="flex-1 truncate">{t.title}</span>
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    {t.completedPomodoros}/{t.estimatedPomodoros}🍅
+                  </span>
+                </button>
+              ))}
+              <div className="border-t border-border mt-1 pt-1">
+                <button
+                  onClick={() => {
+                    setSelectedId(null);
+                    setPickerOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-secondary
+                    ${selectedId === null ? "text-primary font-semibold" : "text-[var(--ink-soft)]"}`}
+                >
+                  — ไม่ผูก task —
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Ring + digits */}
@@ -151,7 +236,7 @@ export function Timer({
       <div className="flex gap-2.5">
         {state === "IDLE" && (
           <button
-            onClick={onStart}
+            onClick={() => onStart(selectedId ?? undefined)}
             className="rounded-xl bg-primary px-[30px] py-3 text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-[var(--accent-hover)] active:translate-y-px"
           >
             เริ่มโฟกัส
