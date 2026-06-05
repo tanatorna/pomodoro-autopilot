@@ -12,7 +12,7 @@ interface ScheduleMainProps {
   onSelect: (taskId: number) => Promise<void>;
   onPriorityUp: (taskId: number, current: number) => Promise<void>;
   onPriorityDown: (taskId: number, current: number) => Promise<void>;
-  onEdit: (taskId: number, title: string) => Promise<void>;
+  onEdit: (taskId: number, patch: { title?: string; estimatedPomodoros?: number }) => Promise<void>;
   onDelete: (taskId: number) => Promise<void>;
   onEndDay: () => Promise<void>;
   endingDay: boolean;
@@ -42,20 +42,29 @@ export function ScheduleMain({
     return b.priority !== a.priority ? b.priority - a.priority : a.id - b.id;
   });
 
-  // ─── inline edit state ───
+  // ─── inline edit state (title + pomodoros) ───
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editText, setEditText] = useState("");
+  const [editPomodoros, setEditPomodoros] = useState(1);
 
   function startEdit(task: Task) {
     setEditingId(task.id);
     setEditText(task.title);
+    setEditPomodoros(task.estimatedPomodoros);
   }
 
-  function commitEdit(taskId: number, original: string) {
-    if (editingId !== taskId) return;
-    const next = editText.trim();
+  function commitEdit(task: Task) {
+    if (editingId !== task.id) return;
+    const nextTitle = editText.trim();
+    const nextPom = editPomodoros;
     setEditingId(null);
-    if (next && next !== original) void onEdit(taskId, next);
+
+    const patch: { title?: string; estimatedPomodoros?: number } = {};
+    if (nextTitle && nextTitle !== task.title) patch.title = nextTitle;
+    if (nextPom !== task.estimatedPomodoros && nextPom >= 1 && nextPom <= 12) {
+      patch.estimatedPomodoros = nextPom;
+    }
+    if (Object.keys(patch).length) void onEdit(task.id, patch);
   }
 
   return (
@@ -109,7 +118,7 @@ export function ScheduleMain({
                         if (e.key === "Enter") e.currentTarget.blur();
                         if (e.key === "Escape") setEditingId(null);
                       }}
-                      onBlur={() => commitEdit(task.id, task.title)}
+                      onBlur={() => commitEdit(task)}
                       className="flex-1 min-w-0 text-sm bg-card border border-primary rounded-md px-2 py-1 text-foreground focus:outline-none"
                     />
                   ) : (
@@ -127,10 +136,37 @@ export function ScheduleMain({
                     </span>
                   )}
 
-                  {!isEditing && (
+                  {!isEditing ? (
                     <span className="shrink-0 rounded-full border border-border px-1.5 py-0.5 text-xs text-muted-foreground self-start mt-0.5">
                       {task.completedPomodoros}/{task.estimatedPomodoros}🍅
                     </span>
+                  ) : (
+                    // editing → แสดง stepper สำหรับแก้จำนวน 🍅 (เก็บค่าใน state ระหว่าง edit · commit ตอน blur title)
+                    <div
+                      className="flex items-center gap-1 shrink-0 self-start"
+                      // กดในกลุ่ม stepper → คง focus ที่ input title ไม่ให้ blur ก่อนเวลา
+                      onMouseDown={(e) => e.preventDefault()}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setEditPomodoros((p) => Math.max(1, p - 1))}
+                        disabled={editPomodoros <= 1}
+                        className="w-6 h-6 rounded-md bg-card border border-border text-[var(--ink-soft)] hover:bg-secondary disabled:opacity-30 text-xs flex items-center justify-center"
+                      >
+                        −
+                      </button>
+                      <span className="text-xs font-semibold text-primary w-9 text-center">
+                        {editPomodoros}🍅
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setEditPomodoros((p) => Math.min(12, p + 1))}
+                        disabled={editPomodoros >= 12}
+                        className="w-6 h-6 rounded-md bg-card border border-border text-[var(--ink-soft)] hover:bg-secondary disabled:opacity-30 text-xs flex items-center justify-center"
+                      >
+                        +
+                      </button>
+                    </div>
                   )}
                 </div>
 

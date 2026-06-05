@@ -135,14 +135,19 @@ export function PomodoroApp() {
     setPendingSwitch(null);
   }
 
-  /** แก้ชื่อ task (เช่น พิมพ์ผิด) */
-  async function handleEditTask(taskId: number, title: string) {
+  /** แก้ task — ชื่อ และ/หรือ จำนวน 🍅 */
+  async function handleEditTask(
+    taskId: number,
+    patch: { title?: string; estimatedPomodoros?: number }
+  ) {
     await fetch(`/api/tasks/${taskId}`, {
       method: "PATCH",
       headers: roomHeaders,
-      body: JSON.stringify({ title }),
+      body: JSON.stringify(patch),
     });
     await loadTasks();
+    // ถ้าจำนวน 🍅 เปลี่ยน อาจกระทบ schedule slots → regenerate
+    if (patch.estimatedPomodoros !== undefined) await generateSchedule();
   }
 
   /** ลบ task ทิ้ง */
