@@ -62,9 +62,10 @@ export function Timer({
   const isBreak = state === "SHORT_BREAK" || state === "LONG_BREAK";
   const isRunningish = state === "WORK" || isBreak || isPaused;
 
-  // IDLE → โชว์เวลาเต็ม (เช่น 25:00) + วงเต็ม · ระหว่างเดิน → remaining/total
+  // IDLE → โชว์เวลาเต็ม (เช่น 25:00) · ระหว่างเดิน → วงแหวน "เดินหน้า" เติมเต็มตามเวลาที่ผ่านไป
   const showFullIdle = state === "IDLE";
-  const progress = totalMs > 0 ? (showFullIdle ? 1 : remainingMs / totalMs) : 0;
+  // fill = สัดส่วนเวลาที่ผ่านไป (0 ตอนเริ่ม → 1 ตอนหมดเวลา) · IDLE = ว่าง
+  const fill = totalMs > 0 && !showFullIdle ? 1 - remainingMs / totalMs : 0;
   const digits = loading ? "--:--" : showFullIdle ? fmt(totalMs) : display;
 
   const dots = ((timerState.completedPomodoros % perLong) + perLong) % perLong;
@@ -112,7 +113,7 @@ export function Timer({
             strokeWidth={6}
             strokeLinecap="round"
             strokeDasharray={C}
-            strokeDashoffset={C * (1 - progress)}
+            strokeDashoffset={C * (1 - fill)}
             style={{ transition: "stroke-dashoffset 1s linear, stroke .3s" }}
           />
         </svg>
