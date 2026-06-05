@@ -24,12 +24,12 @@ const LABELS: Record<TimerState["state"], string> = {
   PAUSED: "หยุดพัก",
 };
 
-// สีตาม state (Ember): WORK=terracotta, short=sage, long=teal, idle/paused=muted
+// สีตาม state (Ember): WORK=terracotta, short=sage, long=teal, idle/paused=ink เข้มอ่อน
 function stateColor(state: TimerState["state"]): string {
   if (state === "WORK") return "var(--primary)";
   if (state === "SHORT_BREAK") return "var(--success)";
   if (state === "LONG_BREAK") return "var(--break-long)";
-  return "var(--muted-foreground)";
+  return "var(--ink-soft)"; // เดิม muted-foreground จางเกินบนรูปพื้นหลัง
 }
 
 function fmt(ms: number): string {
@@ -90,13 +90,13 @@ export function Timer({
       {/* Task line */}
       <div className="min-h-[22px]">
         {currentTaskTitle && (state === "WORK" || isPaused) ? (
-          <p className="text-sm text-muted-foreground max-w-xs">
+          <p className="text-sm text-[var(--ink-soft)] max-w-xs">
             กำลังทำ · <span className="font-semibold text-foreground">{currentTaskTitle}</span>
           </p>
         ) : state === "IDLE" ? (
-          <p className="text-sm text-muted-foreground">กดเริ่มเพื่อโฟกัส task แรกในคิว</p>
+          <p className="text-sm font-medium text-[var(--ink-soft)]">กดเริ่มเพื่อโฟกัส task แรกในคิว</p>
         ) : isBreak ? (
-          <p className="text-sm text-muted-foreground">พักสายตา เดี๋ยวระบบเริ่มงานถัดไปให้เอง</p>
+          <p className="text-sm text-[var(--ink-soft)]">พักสายตา เดี๋ยวระบบเริ่มงานถัดไปให้เอง</p>
         ) : null}
       </div>
 
@@ -179,7 +179,7 @@ export function Timer({
         {isRunningish && (
           <button
             onClick={onRestart}
-            className="rounded-xl px-4 py-3 text-[15px] font-medium text-muted-foreground transition-colors hover:text-foreground active:translate-y-px"
+            className="rounded-xl px-4 py-3 text-[15px] font-medium text-[var(--ink-soft)] transition-colors hover:text-foreground active:translate-y-px"
           >
             เริ่มใหม่
           </button>

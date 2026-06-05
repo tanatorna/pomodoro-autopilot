@@ -24,7 +24,7 @@ export function BacklogView({ tasks, onAdd, onMoveToActive }: BacklogViewProps) 
       {tasks.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
           <span className="text-3xl opacity-60">📥</span>
-          <p className="text-muted-foreground text-sm max-w-[240px]">
+          <p className="text-[var(--ink-soft)] text-sm max-w-[240px]">
             Backlog ว่าง — งานที่ค้างตอนจบวันจะมาอยู่ที่นี่
           </p>
         </div>

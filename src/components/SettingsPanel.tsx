@@ -144,7 +144,7 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
         variant="ghost"
         size="sm"
         onClick={() => onChange(DEFAULT_SETTINGS)}
-        className="text-muted-foreground hover:text-foreground text-xs mt-3 w-full"
+        className="text-[var(--ink-soft)] hover:text-foreground text-xs mt-3 w-full"
       >
         ↺ Reset เป็นค่า default (25/5/15)
       </Button>
