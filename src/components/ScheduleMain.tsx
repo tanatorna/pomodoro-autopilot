@@ -2,9 +2,6 @@
 
 import { useState } from "react";
 import type { Task } from "@/generated/prisma/client";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { TaskForm } from "./TaskForm";
 
 interface ScheduleMainProps {
   tasks: Task[];
@@ -21,6 +18,8 @@ interface ScheduleMainProps {
   endingDay: boolean;
 }
 
+import { TaskForm } from "./TaskForm";
+
 export function ScheduleMain({
   tasks,
   currentTaskId,
@@ -35,10 +34,13 @@ export function ScheduleMain({
   onEndDay,
   endingDay,
 }: ScheduleMainProps) {
-  // เรียงตาม priority สูง → ต่ำ, id น้อย → มาก
-  const sorted = [...tasks].sort((a, b) =>
-    b.priority !== a.priority ? b.priority - a.priority : a.id - b.id
-  );
+  // done ลงท้าย → priority สูง→ต่ำ → id
+  const sorted = [...tasks].sort((a, b) => {
+    const ad = a.status === "done" ? 1 : 0;
+    const bd = b.status === "done" ? 1 : 0;
+    if (ad !== bd) return ad - bd;
+    return b.priority !== a.priority ? b.priority - a.priority : a.id - b.id;
+  });
 
   // ─── inline edit state ───
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -49,9 +51,8 @@ export function ScheduleMain({
     setEditText(task.title);
   }
 
-  /** บันทึกการแก้ไข — เรียกตอน blur; Escape จะ set editingId=null ก่อนจึงไม่บันทึก */
   function commitEdit(taskId: number, original: string) {
-    if (editingId !== taskId) return; // ถูกยกเลิก (Escape) ไปแล้ว
+    if (editingId !== taskId) return;
     const next = editText.trim();
     setEditingId(null);
     if (next && next !== original) void onEdit(taskId, next);
@@ -59,18 +60,17 @@ export function ScheduleMain({
 
   return (
     <div className="flex flex-col gap-4 h-full">
-
-      {/* Brain dump input — task ที่จะทำวันนี้ */}
-      <TaskForm
-        placeholder="เพิ่ม task วันนี้..."
-        onAdd={onAdd}
-      />
+      {/* Add task */}
+      <TaskForm placeholder="เพิ่ม task วันนี้..." onAdd={onAdd} />
 
       {/* Task list */}
       {sorted.length === 0 ? (
-        <p className="text-zinc-500 text-sm text-center py-8">
-          ยังไม่มี task — พิมพ์ด้านบนเพื่อเพิ่ม 👆
-        </p>
+        <div className="flex-1 flex flex-col items-center justify-center gap-2 py-10 text-center">
+          <span className="text-3xl opacity-60">🗒️</span>
+          <p className="text-muted-foreground text-sm max-w-[220px]">
+            ยังไม่มี task วันนี้ — พิมพ์ด้านบนเพื่อ brain dump…
+          </p>
+        </div>
       ) : (
         <ul className="flex flex-col gap-2 flex-1 overflow-y-auto">
           {sorted.map((task, index) => {
@@ -83,39 +83,46 @@ export function ScheduleMain({
                 key={task.id}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-colors group
                   ${isActive
-                    ? "bg-amber-400/15 border-amber-300/40"
-                    : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
+                    ? "bg-accent border-[var(--border-active)]"
+                    : "bg-card border-border hover:bg-secondary"
                   }`}
               >
                 {/* Rank */}
-                <span className="text-xs text-zinc-600 font-mono w-4 shrink-0 text-right">
+                <span
+                  className="text-xs font-mono w-4 shrink-0 text-right"
+                  style={{ color: isDone ? "var(--success)" : "var(--faint)" }}
+                >
                   {isDone ? "✓" : index + 1}
                 </span>
 
                 {/* Active dot */}
                 {isActive && !isEditing && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 animate-pulse" />
                 )}
 
-                {/* Title — แก้ไขแบบ inline ได้ */}
+                {/* Title — inline edit */}
                 {isEditing ? (
                   <input
                     autoFocus
                     value={editText}
                     onChange={(e) => setEditText(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") e.currentTarget.blur(); // → trigger onBlur commit
+                      if (e.key === "Enter") e.currentTarget.blur();
                       if (e.key === "Escape") setEditingId(null);
                     }}
                     onBlur={() => commitEdit(task.id, task.title)}
-                    className="flex-1 min-w-0 text-sm bg-zinc-900 border border-amber-500/50 rounded px-2 py-1 text-white focus:outline-none"
+                    className="flex-1 min-w-0 text-sm bg-card border border-primary rounded-md px-2 py-1 text-foreground focus:outline-none"
                   />
                 ) : (
                   <span
                     onDoubleClick={() => !isDone && startEdit(task)}
                     title={isDone ? undefined : "ดับเบิลคลิกเพื่อแก้ชื่อ"}
                     className={`flex-1 text-sm truncate min-w-0
-                      ${isDone ? "line-through text-zinc-600" : isActive ? "text-white" : "text-zinc-300"}`}
+                      ${isDone
+                        ? "line-through text-muted-foreground"
+                        : isActive
+                          ? "text-foreground font-semibold"
+                          : "text-[var(--ink-soft)]"}`}
                   >
                     {task.title}
                   </span>
@@ -123,27 +130,24 @@ export function ScheduleMain({
 
                 {!isEditing && (
                   <>
-                    {/* Pomodoro count */}
-                    <Badge
-                      variant="outline"
-                      className="border-zinc-700 text-zinc-500 text-xs shrink-0 px-1.5"
-                    >
+                    {/* Pomodoro count pill */}
+                    <span className="shrink-0 rounded-full border border-border px-1.5 py-0.5 text-xs text-muted-foreground">
                       {task.completedPomodoros}/{task.estimatedPomodoros}🍅
-                    </Badge>
+                    </span>
 
                     {/* Priority controls */}
                     {!isDone && (
                       <div className="flex flex-col gap-0.5 shrink-0">
                         <button
                           onClick={() => onPriorityUp(task.id, task.priority)}
-                          className="text-zinc-600 hover:text-amber-400 text-xs w-4 h-3.5 flex items-center justify-center leading-none"
+                          className="text-[var(--faint)] hover:text-primary text-xs w-4 h-3.5 flex items-center justify-center leading-none"
                           title="เพิ่ม priority"
                         >
                           ▲
                         </button>
                         <button
                           onClick={() => onPriorityDown(task.id, task.priority)}
-                          className="text-zinc-600 hover:text-zinc-400 text-xs w-4 h-3.5 flex items-center justify-center leading-none"
+                          className="text-[var(--faint)] hover:text-foreground text-xs w-4 h-3.5 flex items-center justify-center leading-none"
                           title="ลด priority"
                         >
                           ▼
@@ -151,34 +155,31 @@ export function ScheduleMain({
                       </div>
                     )}
 
-                    {/* Select button */}
+                    {/* Start button */}
                     {!isActive && !isDone && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
+                      <button
                         onClick={() => onSelect(task.id)}
-                        className="text-xs text-zinc-500 hover:text-amber-400 h-6 px-1.5 shrink-0"
+                        className="shrink-0 text-xs font-medium text-muted-foreground hover:text-primary px-1.5 h-6 rounded-md transition-colors"
                       >
-                        เลือก
-                      </Button>
+                        เริ่ม
+                      </button>
                     )}
 
-                    {/* Edit + Delete — โผล่ตอน hover */}
+                    {/* Edit + Delete — hover */}
                     <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                       {!isDone && (
                         <button
                           onClick={() => startEdit(task)}
-                          className="text-zinc-600 hover:text-amber-400 text-xs w-5 h-5 flex items-center justify-center rounded hover:bg-zinc-700/50"
+                          className="text-[var(--faint)] hover:text-primary text-xs w-5 h-5 flex items-center justify-center rounded hover:bg-secondary"
                           title="แก้ชื่อ"
                         >
                           ✎
                         </button>
                       )}
-                      {/* ห้ามลบ task ที่กำลังโฟกัสอยู่ (กันลบพลาดระหว่างจับเวลา) */}
                       {!isActive && (
                         <button
                           onClick={() => onDelete(task.id)}
-                          className="text-zinc-600 hover:text-red-400 text-xs w-5 h-5 flex items-center justify-center rounded hover:bg-zinc-700/50"
+                          className="text-[var(--faint)] hover:text-[var(--danger)] text-xs w-5 h-5 flex items-center justify-center rounded hover:bg-secondary"
                           title="ลบ task"
                         >
                           🗑
@@ -195,32 +196,27 @@ export function ScheduleMain({
 
       {/* Day summary */}
       {(sorted.length > 0 || completedPomodoros > 0) && (
-        <div className="border border-zinc-800 rounded-xl p-3 bg-zinc-800/20 flex flex-col gap-3 shrink-0">
+        <div className="border border-border rounded-2xl p-3 bg-card flex flex-col gap-3 shrink-0">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-zinc-500">🌙 สรุปวันนี้</span>
+            <span className="text-xs text-muted-foreground">🌙 สรุปวันนี้</span>
             <div className="flex gap-3 text-xs">
-              <span className="text-amber-400 font-mono font-semibold">
-                {completedPomodoros} 🍅
-              </span>
-              <span className="text-zinc-500">
-                {pendingCount} task ค้าง
-              </span>
+              <span className="text-primary font-semibold">{completedPomodoros} 🍅</span>
+              <span className="text-muted-foreground">{pendingCount} ค้าง</span>
             </div>
           </div>
 
           {pendingCount > 0 && (
-            <Button
+            <button
               onClick={onEndDay}
               disabled={endingDay}
-              size="sm"
-              className="w-full bg-zinc-700 hover:bg-zinc-600 text-zinc-300 text-xs font-medium h-7"
+              className="w-full rounded-lg bg-secondary border border-border text-[var(--ink-soft)] text-xs font-medium py-2 hover:bg-muted transition-colors disabled:opacity-50"
             >
               {endingDay ? "กำลังจัดการ..." : "🌙 จบวัน → ย้ายที่เหลือไป Backlog"}
-            </Button>
+            </button>
           )}
 
           {pendingCount === 0 && completedPomodoros > 0 && (
-            <p className="text-xs text-emerald-500 text-center">
+            <p className="text-xs text-center" style={{ color: "var(--success)" }}>
               ✅ เคลียร์ทุก task วันนี้แล้ว!
             </p>
           )}

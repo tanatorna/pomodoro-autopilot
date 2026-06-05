@@ -74,11 +74,8 @@ export function RoomBadge({
     setRenameState({ kind: "checking" });
     checkTimer.current = setTimeout(async () => {
       const taken = await onCheckRoom(code);
-      // กันกรณีผู้ใช้พิมพ์ต่อจนค่าเปลี่ยน
       setRenameState((prev) =>
-        prev.kind === "checking"
-          ? { kind: taken ? "taken" : "available" }
-          : prev
+        prev.kind === "checking" ? { kind: taken ? "taken" : "available" } : prev
       );
     }, 400);
   }
@@ -89,7 +86,7 @@ export function RoomBadge({
     if (code === roomId || !/^[A-Z0-9]{3,16}$/.test(code)) return;
     if (renameState.kind === "taken") return;
     setRenameState({ kind: "saving" });
-    const res = await onRenameRoom(code); // สำเร็จ → reload เอง
+    const res = await onRenameRoom(code);
     if (!res.ok) {
       setRenameState({ kind: res.reason === "taken" ? "taken" : "invalid" });
     }
@@ -109,19 +106,18 @@ export function RoomBadge({
       <button
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg
-          bg-zinc-800 border border-zinc-700 hover:border-zinc-500
-          text-xs font-mono text-zinc-400 hover:text-zinc-200 transition-colors"
+          bg-card border border-border hover:border-[var(--border-strong)]
+          text-xs font-mono text-muted-foreground hover:text-foreground transition-colors"
         title="จัดการห้อง"
       >
-        <span className="text-zinc-600">🔑</span>
-        <span className="tracking-widest">{roomId}</span>
-        <span className="text-zinc-600">✎</span>
+        <span className="text-[var(--faint)]">🔑</span>
+        <span className="tracking-widest text-[var(--ink-soft)]">{roomId}</span>
+        <span className="text-[var(--faint)]">▾</span>
       </button>
 
       {/* Dropdown */}
       {open && (
         <>
-          {/* Backdrop */}
           <div
             className="fixed inset-0 z-40"
             onClick={() => {
@@ -132,30 +128,31 @@ export function RoomBadge({
             }}
           />
 
-          {/* Panel */}
-          <div className="absolute top-full right-0 mt-2 z-50
-            bg-zinc-900 border border-zinc-700 rounded-xl p-4 w-80 shadow-2xl">
-
+          <div
+            className="absolute top-full right-0 mt-2 z-50 paper-panel
+              border border-border rounded-2xl p-4 w-80"
+            style={{ boxShadow: "0 14px 40px rgba(120,80,40,0.16)" }}
+          >
             {/* ── ห้องปัจจุบัน ── */}
-            <p className="text-xs font-semibold text-zinc-300 mb-1">ห้องปัจจุบัน</p>
+            <p className="text-xs font-semibold text-[var(--ink-soft)] mb-1">ห้องปัจจุบัน</p>
 
             {!renaming ? (
               <div className="flex items-center gap-2 mb-2">
-                <code className="flex-1 text-sm font-mono text-amber-400 bg-zinc-800 px-3 py-1.5 rounded-lg">
+                <code className="flex-1 text-sm font-mono text-primary bg-card px-3 py-1.5 rounded-lg border border-border">
                   {roomId}
                 </code>
                 <button
                   onClick={startRename}
-                  className="text-xs text-zinc-400 hover:text-zinc-200 px-2 py-1.5 rounded-lg
-                    bg-zinc-800 border border-zinc-700 hover:border-zinc-500"
+                  className="text-xs text-muted-foreground hover:text-foreground px-2 py-1.5 rounded-lg
+                    bg-card border border-border hover:border-[var(--border-strong)]"
                   title="เปลี่ยนรหัสห้อง (ย้ายข้อมูลตามไปด้วย)"
                 >
                   ✎ แก้รหัส
                 </button>
                 <button
                   onClick={handleCopyLink}
-                  className="text-xs text-zinc-400 hover:text-zinc-200 px-2 py-1.5 rounded-lg
-                    bg-zinc-800 border border-zinc-700 hover:border-zinc-500 whitespace-nowrap"
+                  className="text-xs text-muted-foreground hover:text-foreground px-2 py-1.5 rounded-lg
+                    bg-card border border-border hover:border-[var(--border-strong)] whitespace-nowrap"
                   title="copy invite link"
                 >
                   📋
@@ -170,9 +167,9 @@ export function RoomBadge({
                     onChange={(e) => onRenameChange(e.target.value)}
                     placeholder="รหัสห้องใหม่"
                     maxLength={16}
-                    className="flex-1 min-w-0 text-sm font-mono bg-zinc-800 border rounded-lg px-3 py-1.5
-                      text-zinc-100 placeholder:text-zinc-600 focus:outline-none uppercase
-                      border-zinc-700 focus:border-amber-500"
+                    className="flex-1 min-w-0 text-sm font-mono bg-card border rounded-lg px-3 py-1.5
+                      text-foreground placeholder:text-[var(--faint)] focus:outline-none uppercase
+                      border-border focus:border-primary"
                   />
                   <button
                     type="submit"
@@ -183,15 +180,15 @@ export function RoomBadge({
                       renameState.kind === "saving" ||
                       renameInput.toUpperCase().trim() === roomId
                     }
-                    className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400
-                      text-black text-xs font-semibold disabled:opacity-40"
+                    className="px-3 py-1.5 rounded-lg bg-primary hover:bg-[var(--accent-hover)]
+                      text-primary-foreground text-xs font-semibold disabled:opacity-40"
                   >
                     {renameState.kind === "saving" ? "..." : "บันทึก"}
                   </button>
                   <button
                     type="button"
                     onClick={() => setRenaming(false)}
-                    className="px-2 py-1.5 rounded-lg text-xs text-zinc-500 hover:text-zinc-300"
+                    className="px-2 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground"
                   >
                     ยกเลิก
                   </button>
@@ -199,16 +196,16 @@ export function RoomBadge({
                 {/* สถานะเช็คซ้ำ */}
                 <p className="text-xs mt-1.5 h-4">
                   {renameState.kind === "checking" && (
-                    <span className="text-zinc-500">กำลังเช็ค...</span>
+                    <span className="text-muted-foreground">กำลังเช็ค...</span>
                   )}
                   {renameState.kind === "available" && (
-                    <span className="text-emerald-500">✓ ใช้รหัสนี้ได้</span>
+                    <span style={{ color: "var(--success)" }}>✓ ใช้รหัสนี้ได้</span>
                   )}
                   {renameState.kind === "taken" && (
-                    <span className="text-red-400">✗ รหัสนี้มีคนใช้แล้ว</span>
+                    <span style={{ color: "var(--danger)" }}>✗ รหัสนี้มีคนใช้แล้ว</span>
                   )}
                   {renameState.kind === "invalid" && (
-                    <span className="text-red-400">ใช้ A–Z, 0–9 ความยาว 3–16 ตัว</span>
+                    <span style={{ color: "var(--danger)" }}>ใช้ A–Z, 0–9 ความยาว 3–16 ตัว</span>
                   )}
                 </p>
               </form>
@@ -217,17 +214,17 @@ export function RoomBadge({
             {/* ── สร้างห้องใหม่ ── */}
             <button
               onClick={onCreateRoom}
-              className="w-full mb-3 text-xs text-zinc-300 hover:text-white px-3 py-2 rounded-lg
-                bg-zinc-800/60 border border-dashed border-zinc-600 hover:border-amber-500/60
-                hover:bg-zinc-800 transition-colors"
+              className="w-full mb-3 text-xs text-[var(--ink-soft)] hover:text-foreground px-3 py-2 rounded-lg
+                bg-card border border-dashed border-[var(--border-strong)] hover:border-primary/60
+                hover:bg-secondary transition-colors"
               title="เปิดห้องว่างใหม่ (สุ่มรหัสให้)"
             >
               + สร้างห้องใหม่
             </button>
 
             {/* ── เข้าห้องอื่น ── */}
-            <div className="border-t border-zinc-800 pt-3">
-              <p className="text-xs text-zinc-500 mb-2">
+            <div className="border-t border-border pt-3">
+              <p className="text-xs text-muted-foreground mb-2">
                 เข้าห้องอื่นที่มีอยู่แล้ว — ใส่ code แล้วกดเข้า
               </p>
               <form onSubmit={handleJoin} className="flex gap-2">
@@ -236,57 +233,64 @@ export function RoomBadge({
                   onChange={(e) => setJoinInput(e.target.value.toUpperCase())}
                   placeholder="CODE ห้อง..."
                   maxLength={16}
-                  className="flex-1 text-sm font-mono bg-zinc-800 border border-zinc-700
-                    rounded-lg px-3 py-1.5 text-zinc-100 placeholder:text-zinc-600
-                    focus:outline-none focus:border-amber-500 uppercase"
+                  className="flex-1 text-sm font-mono bg-card border border-border
+                    rounded-lg px-3 py-1.5 text-foreground placeholder:text-[var(--faint)]
+                    focus:outline-none focus:border-primary uppercase"
                 />
                 <button
                   type="submit"
                   disabled={!joinInput.trim()}
-                  className="px-3 py-1.5 rounded-lg bg-zinc-700 hover:bg-zinc-600
-                    text-zinc-100 text-xs font-semibold disabled:opacity-40"
+                  className="px-3 py-1.5 rounded-lg bg-secondary hover:bg-muted border border-border
+                    text-foreground text-xs font-semibold disabled:opacity-40"
                 >
                   เข้า
                 </button>
               </form>
-              <p className="text-xs text-zinc-600 mt-2">
+              <p className="text-xs text-[var(--faint)] mt-2">
                 ไม่มี code? ให้เพื่อน copy link ด้านบนมาให้
               </p>
             </div>
 
             {/* ── ลบห้องนี้ (danger zone) ── */}
-            <div className="border-t border-zinc-800 mt-3 pt-3">
+            <div className="border-t border-border mt-3 pt-3">
               {!confirmingDelete ? (
                 <button
                   onClick={() => setConfirmingDelete(true)}
-                  className="w-full text-xs text-zinc-500 hover:text-red-400 px-3 py-2 rounded-lg
-                    border border-zinc-800 hover:border-red-500/40 transition-colors"
+                  className="w-full text-xs text-muted-foreground px-3 py-2 rounded-lg
+                    border border-border transition-colors hover:text-[var(--danger)]"
+                  style={{ borderColor: "var(--border)" }}
                 >
                   🗑 ลบห้องนี้
                 </button>
               ) : (
-                <div className="rounded-lg border border-red-500/40 bg-red-500/5 p-3">
-                  <p className="text-xs text-red-300 mb-1 font-semibold">
+                <div
+                  className="rounded-lg p-3"
+                  style={{ border: "1px solid var(--border-active)", background: "var(--danger-bg, rgba(182,69,46,0.08))" }}
+                >
+                  <p className="text-xs mb-1 font-semibold" style={{ color: "var(--danger)" }}>
                     ลบห้อง {roomId} ถาวร?
                   </p>
-                  <p className="text-xs text-zinc-400 mb-3">
+                  <p className="text-xs text-muted-foreground mb-3">
                     task / schedule / timer ทั้งหมดในห้องนี้จะหายและ<strong>กู้คืนไม่ได้</strong>
                     {" "}· ถ้าแชร์ห้องนี้กับคนอื่น จะกระทบทุกคน · ลบเสร็จจะไปห้องเปล่าใหม่
                   </p>
                   <div className="flex gap-2">
                     <button
-                      onClick={async () => { setDeleting(true); await onDeleteRoom(); }}
+                      onClick={async () => {
+                        setDeleting(true);
+                        await onDeleteRoom();
+                      }}
                       disabled={deleting}
-                      className="flex-1 px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-400
-                        text-white text-xs font-semibold disabled:opacity-50"
+                      className="flex-1 px-3 py-1.5 rounded-lg text-white text-xs font-semibold disabled:opacity-50 hover:opacity-90"
+                      style={{ background: "var(--danger)" }}
                     >
                       {deleting ? "กำลังลบ..." : "ยืนยันลบถาวร"}
                     </button>
                     <button
                       onClick={() => setConfirmingDelete(false)}
                       disabled={deleting}
-                      className="px-3 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-zinc-200
-                        bg-zinc-800 border border-zinc-700"
+                      className="px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground
+                        bg-card border border-border"
                     >
                       ยกเลิก
                     </button>

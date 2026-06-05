@@ -34,15 +34,15 @@ function NumberInputRow({
 
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className="text-sm text-zinc-300 flex-1">{label}</span>
+      <span className="text-sm text-[var(--ink-soft)] flex-1">{label}</span>
 
       <div className="flex items-center gap-1.5">
         {/* ลด */}
         <button
           onClick={() => onChange(clamp(value - step))}
           disabled={value <= min}
-          className="w-7 h-7 rounded-md bg-zinc-800 border border-zinc-700
-            text-zinc-300 hover:bg-zinc-700 hover:text-white
+          className="w-7 h-7 rounded-md bg-card border border-border
+            text-[var(--ink-soft)] hover:bg-secondary hover:text-foreground
             disabled:opacity-30 disabled:cursor-not-allowed
             flex items-center justify-center text-base font-bold
             transition-colors select-none"
@@ -62,8 +62,8 @@ function NumberInputRow({
             if (!isNaN(v)) onChange(clamp(v));
           }}
           className="w-14 h-7 text-center text-sm font-mono font-semibold
-            bg-zinc-800 border border-zinc-700 rounded-md text-amber-400
-            focus:outline-none focus:border-amber-500
+            bg-card border border-border rounded-md text-primary
+            focus:outline-none focus:border-primary
             [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />
 
@@ -71,8 +71,8 @@ function NumberInputRow({
         <button
           onClick={() => onChange(clamp(value + step))}
           disabled={value >= max}
-          className="w-7 h-7 rounded-md bg-zinc-800 border border-zinc-700
-            text-zinc-300 hover:bg-zinc-700 hover:text-white
+          className="w-7 h-7 rounded-md bg-card border border-border
+            text-[var(--ink-soft)] hover:bg-secondary hover:text-foreground
             disabled:opacity-30 disabled:cursor-not-allowed
             flex items-center justify-center text-base font-bold
             transition-colors select-none"
@@ -80,7 +80,7 @@ function NumberInputRow({
           +
         </button>
 
-        <span className="text-xs text-zinc-500 w-8">{unit}</span>
+        <span className="text-xs text-muted-foreground w-8">{unit}</span>
       </div>
     </div>
   );
@@ -89,11 +89,11 @@ function NumberInputRow({
 export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
   return (
     <div className="flex flex-col gap-1">
-      <h2 className="text-sm font-medium text-zinc-400 uppercase tracking-wider mb-3">
+      <h2 className="text-sm font-semibold text-muted-foreground tracking-wider mb-3">
         ตั้งค่าเวลา
       </h2>
 
-      <div className="flex flex-col divide-y divide-zinc-800">
+      <div className="flex flex-col divide-y divide-border">
         <div className="py-3">
           <NumberInputRow
             label="⏱ Focus (Pomodoro)"
@@ -144,7 +144,7 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
         variant="ghost"
         size="sm"
         onClick={() => onChange(DEFAULT_SETTINGS)}
-        className="text-zinc-600 hover:text-zinc-400 text-xs mt-3 w-full"
+        className="text-muted-foreground hover:text-foreground text-xs mt-3 w-full"
       >
         ↺ Reset เป็นค่า default (25/5/15)
       </Button>

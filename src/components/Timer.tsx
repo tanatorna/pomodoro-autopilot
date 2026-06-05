@@ -1,7 +1,5 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import type { TimerState } from "@/engine";
 
 interface TimerProps {
@@ -11,27 +9,39 @@ interface TimerProps {
   totalMs: number;
   loading: boolean;
   currentTaskTitle?: string | null;
+  perLong?: number; // pomodoro dots ต่อรอบ long break (default 4)
   onStart: () => void;
   onPause: () => void;
   onResume: () => void;
   onRestart: () => void;
 }
 
-const STATE_LABELS: Record<TimerState["state"], string> = {
+const LABELS: Record<TimerState["state"], string> = {
   IDLE: "พร้อมเริ่ม",
-  WORK: "โฟกัส 🍅",
-  SHORT_BREAK: "พักสั้น ☕",
-  LONG_BREAK: "พักยาว 🛋️",
-  PAUSED: "หยุดพัก ⏸",
+  WORK: "โฟกัส",
+  SHORT_BREAK: "พักสั้น",
+  LONG_BREAK: "พักยาว",
+  PAUSED: "หยุดพัก",
 };
 
-const STATE_COLORS: Record<TimerState["state"], string> = {
-  IDLE: "bg-zinc-700 text-zinc-300",
-  WORK: "bg-amber-500/20 text-amber-400",
-  SHORT_BREAK: "bg-emerald-500/20 text-emerald-400",
-  LONG_BREAK: "bg-sky-500/20 text-sky-400",
-  PAUSED: "bg-zinc-600/20 text-zinc-400",
-};
+// สีตาม state (Ember): WORK=terracotta, short=sage, long=teal, idle/paused=muted
+function stateColor(state: TimerState["state"]): string {
+  if (state === "WORK") return "var(--primary)";
+  if (state === "SHORT_BREAK") return "var(--success)";
+  if (state === "LONG_BREAK") return "var(--break-long)";
+  return "var(--muted-foreground)";
+}
+
+function fmt(ms: number): string {
+  const sec = Math.max(0, Math.round(ms / 1000));
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+const SIZE = 230;
+const R = 46;
+const C = 2 * Math.PI * R;
 
 export function Timer({
   timerState,
@@ -40,110 +50,134 @@ export function Timer({
   totalMs,
   loading,
   currentTaskTitle,
+  perLong = 4,
   onStart,
   onPause,
   onResume,
   onRestart,
 }: TimerProps) {
-  const progress = totalMs > 0 ? (remainingMs / totalMs) * 100 : 0;
+  const state = timerState.state;
+  const color = stateColor(state);
+  const isPaused = state === "PAUSED";
+  const isBreak = state === "SHORT_BREAK" || state === "LONG_BREAK";
+  const isRunningish = state === "WORK" || isBreak || isPaused;
 
-  // โชว์ชื่อ task ที่กำลังทำ เฉพาะตอนโฟกัส/พักชั่วคราว
-  const showTask =
-    currentTaskTitle &&
-    (timerState.state === "WORK" || timerState.state === "PAUSED");
+  // IDLE → โชว์เวลาเต็ม (เช่น 25:00) + วงเต็ม · ระหว่างเดิน → remaining/total
+  const showFullIdle = state === "IDLE";
+  const progress = totalMs > 0 ? (showFullIdle ? 1 : remainingMs / totalMs) : 0;
+  const digits = loading ? "--:--" : showFullIdle ? fmt(totalMs) : display;
+
+  const dots = ((timerState.completedPomodoros % perLong) + perLong) % perLong;
 
   return (
-    <div className="flex flex-col items-center gap-6 select-none">
-      {/* State badge */}
-      <Badge className={`px-4 py-1 text-sm font-medium rounded-full border-0 ${STATE_COLORS[timerState.state]}`}>
-        {STATE_LABELS[timerState.state]}
-      </Badge>
+    <div className="flex flex-col items-center gap-6 select-none text-center">
+      {/* State badge — outline italic (Newsreader) */}
+      <span
+        className="inline-flex items-center rounded-full px-4 py-1.5 text-[15px] italic"
+        style={{
+          fontFamily: "var(--font-heading)",
+          border: `1.5px solid ${color}`,
+          color,
+        }}
+      >
+        {LABELS[state]}
+      </span>
 
-      {/* ชื่อ task ที่กำลังทำ */}
-      {showTask && (
-        <p className="-mt-3 max-w-xs text-center text-sm text-zinc-400 truncate">
-          กำลังทำ: <span className="font-medium text-zinc-100">{currentTaskTitle}</span>
-        </p>
-      )}
+      {/* Task line */}
+      <div className="min-h-[22px]">
+        {currentTaskTitle && (state === "WORK" || isPaused) ? (
+          <p className="text-sm text-muted-foreground max-w-xs">
+            กำลังทำ · <span className="font-semibold text-foreground">{currentTaskTitle}</span>
+          </p>
+        ) : state === "IDLE" ? (
+          <p className="text-sm text-muted-foreground">กดเริ่มเพื่อโฟกัส task แรกในคิว</p>
+        ) : isBreak ? (
+          <p className="text-sm text-muted-foreground">พักสายตา เดี๋ยวระบบเริ่มงานถัดไปให้เอง</p>
+        ) : null}
+      </div>
 
-      {/* Countdown */}
-      <div className="relative flex items-center justify-center w-64 h-64">
-        {/* Progress ring */}
-        <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="4" />
+      {/* Ring + digits */}
+      <div
+        className="relative flex items-center justify-center transition-opacity"
+        style={{ width: SIZE, height: SIZE, opacity: isPaused ? 0.6 : 1 }}
+      >
+        <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full -rotate-90">
+          <circle cx="50" cy="50" r={R} fill="none" stroke="var(--ring-track)" strokeWidth={6} />
           <circle
-            cx="50" cy="50" r="45"
+            cx="50"
+            cy="50"
+            r={R}
             fill="none"
-            stroke="#f59e0b"
-            strokeWidth="4"
+            stroke={color}
+            strokeWidth={6}
             strokeLinecap="round"
-            strokeDasharray={`${2 * Math.PI * 45}`}
-            strokeDashoffset={`${2 * Math.PI * 45 * (1 - progress / 100)}`}
-            className="transition-all duration-1000 ease-linear"
+            strokeDasharray={C}
+            strokeDashoffset={C * (1 - progress)}
+            style={{ transition: "stroke-dashoffset 1s linear, stroke .3s" }}
           />
         </svg>
-
-        {/* Time display */}
         <div className="flex flex-col items-center z-10">
-          <span className="text-6xl font-mono font-bold text-white tracking-tight">
-            {loading ? "--:--" : display}
+          <span
+            className="text-foreground leading-none"
+            style={{
+              fontFamily: "var(--font-heading)",
+              fontWeight: 500,
+              fontSize: 56,
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            {digits}
           </span>
-          {timerState.completedPomodoros > 0 && (
-            <span className="text-xs text-zinc-500 mt-1">
-              {"🍅".repeat(Math.min(timerState.completedPomodoros, 8))}
-            </span>
+          {(state === "WORK" || isPaused) && (
+            <div className="flex gap-1.5 mt-3">
+              {Array.from({ length: perLong }).map((_, i) => (
+                <span
+                  key={i}
+                  className="w-[7px] h-[7px] rounded-full transition-colors"
+                  style={{ background: i < dots ? color : "var(--ring-track)" }}
+                />
+              ))}
+            </div>
           )}
         </div>
       </div>
 
       {/* Controls */}
-      <div className="flex gap-3">
-        {timerState.state === "IDLE" && (
-          <Button
+      <div className="flex gap-2.5">
+        {state === "IDLE" && (
+          <button
             onClick={onStart}
-            className="bg-amber-500 hover:bg-amber-400 text-black font-semibold px-8"
+            className="rounded-xl bg-primary px-[30px] py-3 text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-[var(--accent-hover)] active:translate-y-px"
           >
-            เริ่ม
-          </Button>
+            เริ่มโฟกัส
+          </button>
         )}
 
-        {(timerState.state === "WORK" ||
-          timerState.state === "SHORT_BREAK" ||
-          timerState.state === "LONG_BREAK") && (
-          <>
-            <Button
-              onClick={onPause}
-              variant="outline"
-              className="border-white/20 bg-white/5 text-zinc-100 hover:bg-white/10 hover:text-white"
-            >
-              หยุดชั่วคราว
-            </Button>
-            <Button
-              onClick={onRestart}
-              variant="ghost"
-              className="text-zinc-300 hover:text-white hover:bg-white/10"
-            >
-              เริ่มใหม่
-            </Button>
-          </>
+        {isRunningish && !isPaused && (
+          <button
+            onClick={onPause}
+            className="rounded-xl bg-card border border-[var(--border-strong)] px-6 py-3 text-[15px] font-semibold text-[var(--ink-soft)] transition-colors hover:bg-secondary active:translate-y-px"
+          >
+            หยุดชั่วคราว
+          </button>
         )}
 
-        {timerState.state === "PAUSED" && (
-          <>
-            <Button
-              onClick={onResume}
-              className="bg-amber-500 hover:bg-amber-400 text-black font-semibold px-8"
-            >
-              เดินต่อ
-            </Button>
-            <Button
-              onClick={onRestart}
-              variant="ghost"
-              className="text-zinc-300 hover:text-white hover:bg-white/10"
-            >
-              เริ่มใหม่
-            </Button>
-          </>
+        {isPaused && (
+          <button
+            onClick={onResume}
+            className="rounded-xl bg-primary px-[30px] py-3 text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-[var(--accent-hover)] active:translate-y-px"
+          >
+            เดินต่อ
+          </button>
+        )}
+
+        {isRunningish && (
+          <button
+            onClick={onRestart}
+            className="rounded-xl px-4 py-3 text-[15px] font-medium text-muted-foreground transition-colors hover:text-foreground active:translate-y-px"
+          >
+            เริ่มใหม่
+          </button>
         )}
       </div>
     </div>

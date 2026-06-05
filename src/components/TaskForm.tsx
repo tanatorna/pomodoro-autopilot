@@ -41,30 +41,30 @@ export function TaskForm({
         onChange={(e) => setTitle(e.target.value)}
         placeholder={placeholder}
         autoFocus
-        className="bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500
-          focus-visible:ring-amber-500 flex-1 min-w-0"
+        className="bg-card border-border text-foreground placeholder:text-muted-foreground
+          focus-visible:ring-primary/40 focus-visible:border-primary flex-1 min-w-0 h-9"
       />
 
-      {/* Estimated pomodoros — เล็กแต่กดได้ */}
+      {/* Estimated pomodoros — stepper */}
       <div className="flex items-center gap-1 shrink-0">
         <button
           type="button"
           onClick={() => setPomodoros((p) => Math.max(1, p - 1))}
           disabled={pomodoros <= 1}
-          className="w-6 h-6 rounded bg-zinc-800 border border-zinc-700 text-zinc-400
-            hover:bg-zinc-700 disabled:opacity-30 text-xs flex items-center justify-center"
+          className="w-6 h-6 rounded-md bg-card border border-border text-muted-foreground
+            hover:bg-secondary disabled:opacity-30 text-xs flex items-center justify-center"
         >
           −
         </button>
-        <span className="text-xs font-mono text-amber-400 w-8 text-center">
+        <span className="text-xs font-semibold text-primary w-8 text-center">
           {pomodoros}🍅
         </span>
         <button
           type="button"
           onClick={() => setPomodoros((p) => Math.min(12, p + 1))}
           disabled={pomodoros >= 12}
-          className="w-6 h-6 rounded bg-zinc-800 border border-zinc-700 text-zinc-400
-            hover:bg-zinc-700 disabled:opacity-30 text-xs flex items-center justify-center"
+          className="w-6 h-6 rounded-md bg-card border border-border text-muted-foreground
+            hover:bg-secondary disabled:opacity-30 text-xs flex items-center justify-center"
         >
           +
         </button>
@@ -74,7 +74,7 @@ export function TaskForm({
       <Button
         type="submit"
         disabled={loading || !title.trim()}
-        className="bg-amber-500 hover:bg-amber-400 text-black font-semibold shrink-0 px-4"
+        className="bg-primary hover:bg-[var(--accent-hover)] text-primary-foreground font-semibold shrink-0 px-4 h-9"
       >
         {submitLabel}
       </Button>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 interface InterruptButtonProps {
@@ -31,11 +30,14 @@ export function InterruptButton({ visible, onInterrupt }: InterruptButtonProps) 
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
       {/* Expanded form */}
       {open && (
-        <div className="bg-zinc-900 border border-red-500/40 rounded-xl p-4 w-72 shadow-2xl">
-          <p className="text-sm font-medium text-red-400 mb-3">
+        <div
+          className="paper-panel rounded-2xl p-4 w-72"
+          style={{ border: "1px solid var(--border-active)", boxShadow: "0 14px 40px rgba(120,80,40,0.16)" }}
+        >
+          <p className="text-sm font-semibold mb-2" style={{ color: "var(--danger)" }}>
             ⚡ งานด่วน — แทรกเลย
           </p>
-          <p className="text-xs text-zinc-500 mb-3">
+          <p className="text-xs text-muted-foreground mb-3">
             Pomodoro ปัจจุบันจะถูก void และระบบจะเริ่ม task ใหม่ทันที
           </p>
           <form onSubmit={handleSubmit} className="flex flex-col gap-2">
@@ -45,41 +47,42 @@ export function InterruptButton({ visible, onInterrupt }: InterruptButtonProps) 
               onChange={(e) => setTitle(e.target.value)}
               placeholder="งานด่วนคืออะไร?"
               disabled={loading}
-              className="bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-red-500"
+              className="bg-card border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/30"
             />
             <div className="flex gap-2">
-              <Button
+              <button
                 type="submit"
                 disabled={loading || !title.trim()}
-                className="flex-1 bg-red-500 hover:bg-red-400 text-white font-semibold text-sm"
+                className="flex-1 rounded-lg text-white font-semibold text-sm py-2 disabled:opacity-50 hover:opacity-90"
+                style={{ background: "var(--danger)" }}
               >
                 {loading ? "กำลังแทรก..." : "แทรกเลย"}
-              </Button>
-              <Button
+              </button>
+              <button
                 type="button"
-                variant="ghost"
-                onClick={() => { setOpen(false); setTitle(""); }}
-                className="text-zinc-500 hover:text-zinc-300 text-sm"
+                onClick={() => {
+                  setOpen(false);
+                  setTitle("");
+                }}
+                className="text-muted-foreground hover:text-foreground text-sm px-3"
               >
                 ยกเลิก
-              </Button>
+              </button>
             </div>
           </form>
         </div>
       )}
 
       {/* Trigger button */}
-      <Button
+      <button
         onClick={() => setOpen((o) => !o)}
-        className={`rounded-full w-12 h-12 shadow-lg text-lg transition-all
-          ${open
-            ? "bg-zinc-700 hover:bg-zinc-600"
-            : "bg-red-500 hover:bg-red-400 animate-pulse"
-          }`}
+        className={`rounded-full w-12 h-12 text-lg text-white flex items-center justify-center transition-all
+          ${open ? "bg-secondary !text-foreground border border-border" : "hover:opacity-90 animate-pulse"}`}
+        style={open ? undefined : { background: "var(--danger)", boxShadow: "0 8px 24px rgba(182,69,46,0.4)" }}
         title="งานด่วน"
       >
         {open ? "✕" : "⚡"}
-      </Button>
+      </button>
     </div>
   );
 }

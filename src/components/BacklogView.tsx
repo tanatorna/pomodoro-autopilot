@@ -1,8 +1,6 @@
 "use client";
 
 import type { Task } from "@/generated/prisma/client";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { TaskForm } from "./TaskForm";
 
 interface BacklogViewProps {
@@ -14,56 +12,45 @@ interface BacklogViewProps {
 export function BacklogView({ tasks, onAdd, onMoveToActive }: BacklogViewProps) {
   return (
     <div className="flex flex-col gap-4">
-
-      {/* Brain dump ไว้ใน Backlog — park task ที่ยังไม่รู้ว่าเมื่อไหร่จะทำ */}
+      {/* park task ที่ยังไม่รู้ว่าเมื่อไหร่จะทำ */}
       <TaskForm
-        placeholder="park task ไว้ก่อน..."
-        submitLabel="park"
+        placeholder="เก็บงานอนาคตเข้า backlog..."
+        submitLabel="เก็บ"
         onAdd={onAdd}
       />
 
-      {/* Divider */}
-      <div className="border-t border-zinc-800" />
+      <div className="border-t border-border" />
 
-      {/* Empty state */}
       {tasks.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-8 gap-2">
-          <span className="text-3xl">📭</span>
-          <p className="text-zinc-500 text-sm text-center">
-            Backlog ว่างเปล่า
+        <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
+          <span className="text-3xl opacity-60">📥</span>
+          <p className="text-muted-foreground text-sm max-w-[240px]">
+            Backlog ว่าง — งานที่ค้างตอนจบวันจะมาอยู่ที่นี่
           </p>
         </div>
       ) : (
         <>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-muted-foreground">
             {tasks.length} task รอวันพรุ่งนี้
           </p>
           <ul className="flex flex-col gap-2">
             {tasks.map((task) => (
               <li
                 key={task.id}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-zinc-800/40 border border-zinc-700/30"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-card border border-border"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-zinc-300 truncate">{task.title}</p>
-                  <p className="text-xs text-zinc-600 mt-0.5">
+                  <p className="text-sm text-[var(--ink-soft)] truncate">{task.title}</p>
+                  <p className="text-xs text-[var(--faint)] mt-0.5">
                     {task.completedPomodoros}/{task.estimatedPomodoros} 🍅
                   </p>
                 </div>
-                <Badge
-                  variant="outline"
-                  className="border-zinc-700 text-zinc-500 text-xs shrink-0"
-                >
-                  backlog
-                </Badge>
-                <Button
-                  size="sm"
-                  variant="ghost"
+                <button
                   onClick={() => onMoveToActive(task.id)}
-                  className="text-xs text-zinc-400 hover:text-amber-400 h-7 px-2 shrink-0"
+                  className="text-xs font-medium text-muted-foreground hover:text-primary h-7 px-2 shrink-0 rounded-md transition-colors"
                 >
-                  ใช้วันนี้
-                </Button>
+                  ↑ ทำวันนี้
+                </button>
               </li>
             ))}
           </ul>

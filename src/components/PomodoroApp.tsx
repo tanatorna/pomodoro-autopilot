@@ -180,11 +180,14 @@ export function PomodoroApp() {
     tasks.find((t) => t.id === timerState.currentTaskId) ?? null;
 
   return (
-    <div className="min-h-screen dusk-bg text-zinc-100 flex flex-col">
-      {/* Header */}
-      <header className="px-4 sm:px-6 py-3 flex items-center justify-between gap-2 shrink-0 border-b border-white/10 glass">
-        <h1 className="text-base md:text-lg font-semibold text-zinc-100 whitespace-nowrap">
-          🍅 Pomodoro<span className="hidden sm:inline"> Autopilot</span>
+    <div className="min-h-screen ember-bg text-foreground flex flex-col">
+      {/* Header (~56px) */}
+      <header className="h-14 px-4 sm:px-6 flex items-center justify-between gap-2 shrink-0 border-b border-border paper-panel">
+        <h1
+          className="text-lg font-semibold text-foreground whitespace-nowrap"
+          style={{ fontFamily: "var(--font-heading)" }}
+        >
+          🍅 Autopilot
         </h1>
         <div className="flex items-center gap-2 shrink-0">
           <RoomBadge
@@ -199,11 +202,11 @@ export function PomodoroApp() {
         </div>
       </header>
 
-      {/* Main area: มือถือ stack แนวตั้ง (timer บน) · desktop เป็น 2 คอลัมน์ (panel ซ้าย, timer กลาง) */}
-      <div className="flex flex-1 flex-col md:flex-row md:overflow-hidden">
+      {/* Split 50/50: desktop = 2 คอลัมน์ (timer ซ้าย, panel ขวา) · mobile = stack (timer บน) */}
+      <div className="flex flex-col md:grid md:grid-cols-2 md:h-[calc(100vh-3.5rem)]">
 
-        {/* Timer (hero) */}
-        <main className="order-1 md:order-2 md:flex-1 flex items-center justify-center px-4 py-10 md:py-0">
+        {/* Timer (hero) — ครึ่งซ้าย */}
+        <main className="flex items-center justify-center px-4 py-9 md:py-0 md:border-r border-border">
           <Timer
             timerState={timerState}
             display={display}
@@ -211,6 +214,7 @@ export function PomodoroApp() {
             totalMs={totalMs}
             loading={loading}
             currentTaskTitle={currentTask?.title ?? null}
+            perLong={durations.POMODOROS_PER_LONG_BREAK}
             onStart={() => handleStart()}
             onPause={handlePause}
             onResume={handleResume}
@@ -218,24 +222,24 @@ export function PomodoroApp() {
           />
         </main>
 
-        {/* Panel (มือถือ: ใต้ timer / desktop: sidebar ซ้าย) */}
-        <aside className="order-2 md:order-1 w-full md:w-80 shrink-0 flex flex-col border-t md:border-t-0 md:border-r border-white/10 glass md:overflow-hidden">
+        {/* Panel — ครึ่งขวา */}
+        <aside className="paper-panel flex flex-col border-t md:border-t-0 border-border min-h-[56vh] md:min-h-0 md:overflow-hidden">
 
           {/* Tab switcher */}
-          <div className="flex border-b border-white/10 shrink-0">
+          <div className="flex border-b border-border shrink-0">
             {(["schedule", "backlog", "settings"] as SidePanel[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setPanel(tab)}
-                className={`flex-1 py-3 text-xs font-medium uppercase tracking-wider transition-colors
+                className={`flex-1 py-3.5 text-sm font-medium transition-colors
                   ${panel === tab
-                    ? "text-amber-300 border-b-2 border-amber-300"
-                    : "text-zinc-400 hover:text-zinc-200"
+                    ? "text-primary border-b-2 border-primary"
+                    : "text-muted-foreground hover:text-foreground"
                   }`}
               >
                 {PANEL_LABELS[tab]}
                 {tab === "backlog" && backlog.length > 0 && (
-                  <span className="ml-1 bg-white/10 text-zinc-200 rounded-full px-1.5 text-xs">
+                  <span className="ml-1.5 bg-primary/15 text-primary rounded-full px-1.5 text-xs font-semibold">
                     {backlog.length}
                   </span>
                 )}

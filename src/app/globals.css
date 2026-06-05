@@ -8,8 +8,8 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-mono: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  --font-heading: var(--font-heading);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -48,39 +48,50 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* ─── Ember theme (warm paper / terracotta · light) ─── */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --background: #f1e6d4;
+  --foreground: #33281e;        /* ink */
+  --card: #fbf6ec;
+  --card-foreground: #33281e;
+  --popover: #fffbf4;
+  --popover-foreground: #33281e;
+  --primary: #c15f3c;           /* terracotta accent */
+  --primary-foreground: #fff7ef;
+  --secondary: #f6efe1;         /* card hover */
+  --secondary-foreground: #33281e;
+  --muted: #ece0cd;
+  --muted-foreground: #9a8870;  /* muted label */
+  --accent: #f7e9d8;            /* active tint */
+  --accent-foreground: #33281e;
+  --destructive: #b6452e;       /* danger */
+  --border: #e6d8c2;
+  --input: #e6d8c2;
+  --ring: #c15f3c;
+  --chart-1: #c15f3c;
+  --chart-2: #5d7a4f;
+  --chart-3: #3f6f87;
+  --chart-4: #d99a5f;
+  --chart-5: #9a8870;
+  --radius: 0.75rem;
+  --sidebar: #fffbf4;
+  --sidebar-foreground: #33281e;
+  --sidebar-primary: #c15f3c;
+  --sidebar-primary-foreground: #fff7ef;
+  --sidebar-accent: #f7e9d8;
+  --sidebar-accent-foreground: #33281e;
+  --sidebar-border: #e6d8c2;
+  --sidebar-ring: #c15f3c;
+
+  /* Ember extras (อ้างใน component ผ่าน arbitrary value) */
+  --ink-soft: #4d4034;
+  --faint: #bcab93;
+  --border-strong: #d8c6aa;
+  --border-active: #d99a5f;
+  --accent-hover: #a94e2f;
+  --success: #5d7a4f;           /* sage — done / short break */
+  --ring-track: #e7dac6;
+  --break-long: #3f6f87;        /* teal — long break */
 }
 
 .dark {
@@ -129,39 +140,18 @@
   }
 }
 
-/* ─── Deep cozy dusk theme (plain CSS — emit ชัวร์บน Tailwind v4) ─── */
+/* ─── Ember theme surfaces (plain CSS — emit ชัวร์บน Tailwind v4) ─── */
 
-/* พื้นหลังบรรยากาศพลบค่ำ: แสงอุ่นด้านบน ไล่ลงน้ำเงินเข้มด้านล่าง */
-.dusk-bg {
-  background-color: #181b36;
-  background-image:
-    radial-gradient(
-      135% 95% at 50% -10%,
-      rgba(232, 168, 170, 0.45) 0%,
-      rgba(150, 110, 150, 0.18) 38%,
-      rgba(40, 38, 70, 0) 62%
-    ),
-    linear-gradient(
-      180deg,
-      #3b2b4d 0%,
-      #463159 20%,
-      #3c2f56 42%,
-      #2b2950 68%,
-      #181b36 100%
-    );
+/* พื้นหลังกระดาษอุ่น: สว่างด้านบน ไล่เป็นครีมเข้มด้านล่าง */
+.ember-bg {
+  background-color: #f1e6d4;
+  background-image: radial-gradient(120% 90% at 50% -10%, #fbf3e6 0%, #f1e6d4 42%, #ead9c2 100%);
   background-attachment: fixed;
 }
 
-/* กระจกฝ้าเข้ม — สำหรับ panel/แถบหลัก */
-.glass {
-  background-color: rgba(18, 14, 28, 0.5);
-  backdrop-filter: blur(18px) saturate(130%);
-  -webkit-backdrop-filter: blur(18px) saturate(130%);
-}
-
-/* กระจกฝ้าอ่อน — สำหรับการ์ด/ปุ่มย่อย */
-.glass-soft {
-  background-color: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+/* แผงกระดาษโปร่งเล็กน้อย — header/sidebar/dropdown */
+.paper-panel {
+  background-color: rgba(255, 251, 244, 0.78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
