@@ -5,7 +5,7 @@
 > **สถานะ:** Flagship project (แทนที่ expense tracker) — ทำใน **Week 5–6** ของ 12-Week SDET Plan
 > **เป้าหมายซ้อน:** Portfolio piece + ใช้ตอบสัมภาษณ์ SDET ("PM ที่เขียน production-grade automated test ได้")
 >
-> **อัปเดตล่าสุด (2026-05-31):** 🚀 **Deploy ขึ้น prod แล้ว** (Vercel + Turso) — Product เสร็จ Slice 1–4 + enhancements · ฟีเจอร์ **Room** ครบ (แยกข้อมูล/แชร์/สร้าง/แก้รหัส/ลบ) · **Login (Google OAuth, optional)** ใช้งานได้จริงบน prod · **UI redesign** เป็นธีม deep-cozy-dusk + responsive (มือถือใช้ได้แล้ว) · ผ่านสมรภูมิ deploy (Prisma generate, Turso migrate, OAuth setup) · **Phase 2 QA ยังไม่เริ่ม ← งานหลักที่เหลือ**
+> **อัปเดตล่าสุด (2026-05-31):** 🚀 **Deploy ขึ้น prod แล้ว** (Vercel + Turso) — Product เสร็จ Slice 1–4 + enhancements · ฟีเจอร์ **Room** ครบ (แยกข้อมูล/แชร์/สร้าง/แก้รหัส/ลบ) · **Login (Google OAuth, optional)** ใช้งานได้จริงบน prod · **UI redesign 2 รอบ** (dusk → **Ember** กระดาษ/ดินเผา + layout **Split 50/50** ตาม design handoff) + responsive (มือถือใช้ได้) · ผ่านสมรภูมิ deploy (Prisma generate, Turso migrate, OAuth setup) · **Phase 2 QA ยังไม่เริ่ม ← งานหลักที่เหลือ**
 
 ---
 
@@ -37,7 +37,7 @@
 | Persistence | DB ตั้งแต่ slice แรก — state ไม่หายตอน refresh |
 | TimerState shape | `{ state, origin, remainingMs }` — origin เป็น field แยก (ไม่ embed ทั้ง state) |
 | completedPomodoros | อยู่ใน `TimerState` — self-contained, ไม่ผ่าน parameter |
-| UI style | Dark warm-focus theme — พื้น `#111`, amber accent, timer ตรงกลาง |
+| UI style | *(เดิม: dark warm-focus #111/amber)* → ปัจจุบัน **Ember** (กระดาษ/ดินเผา สว่าง, accent terracotta `#c15f3c`) + layout **Split 50/50** ตาม design handoff |
 | UI components | **shadcn/ui** + Tailwind |
 | Test tools deferred | Jest · Supertest · Cypress · Playwright · GitHub Actions → เพิ่มใน QA phase |
 | QA approach | เริ่มจาก manual → E2E (top-down pyramid) → integration → unit |
@@ -62,7 +62,7 @@
 - **Room** — แยกข้อมูลต่อผู้ใช้ + แชร์ห้องผ่านลิงก์ (สร้าง / แก้รหัส+เช็คซ้ำ / เข้าห้องอื่น / ลบห้อง)
 - **Login (optional Google sign-in)** — claim ห้อง + เข้าถึงข้ามเครื่อง (ไม่บังคับ login)
 - **Task edit / delete** — แก้ชื่อ inline + ลบ task (กัน task ที่กำลังโฟกัสไม่ให้ลบ)
-- **Responsive + ธีม deep-cozy-dusk** — ใช้บนมือถือได้ (timer บน + panel ล่าง)
+- **Responsive + ธีม Ember (Split 50/50)** — ใช้บนมือถือได้ (มือถือ: timer บน + panel ล่าง · desktop: timer ซ้าย + panel ขวา)
 
 ### OUT — Future Work (เขียนเป็น Roadmap ใน README)
 - Line Bot notification (แก้ปัญหา mobile-background reliability)
@@ -86,7 +86,7 @@
 
 ### 1.1 User Journeys & Use-Cases — สำหรับ Design Handoff (อัปเดต 2026-05-31)
 
-> สะท้อน **แอปจริงที่ deploy แล้ว** ครบทุกฟีเจอร์ปัจจุบัน · ใช้เป็นฐานออกแบบ UI/flow/states · ธีมปัจจุบัน = deep-cozy-dusk (อ้างอิง studywithme.io)
+> สะท้อน **แอปจริงที่ deploy แล้ว** ครบทุกฟีเจอร์ปัจจุบัน · ใช้เป็นฐานออกแบบ UI/flow/states · ธีมปัจจุบัน = **Ember** (กระดาษ/ดินเผา terracotta) + layout **Split 50/50** (ตาม design handoff `design_handoff_ember_split`)
 
 #### 🗺️ A. โครงหน้าจอ (Single-page)
 แอปเป็น **หน้าเดียว** ประกอบด้วย 4 โซน:
@@ -114,7 +114,7 @@
 
 #### 🎨 C. States ที่ต้องออกแบบ (designer checklist)
 - **Timer:** IDLE "พร้อมเริ่ม" / WORK "โฟกัส 🍅" / SHORT_BREAK "พักสั้น ☕" / LONG_BREAK "พักยาว 🛋️" / PAUSED "หยุดพัก ⏸" / loading "--:--"
-- **Task item:** ปกติ / **active** (ไฮไลต์ amber + จุดกะพริบ) / **done** (ขีดฆ่า ✓) / **editing** (inline input) / hover (โผล่ปุ่ม ✎ 🗑)
+- **Task item:** ปกติ / **active** (ไฮไลต์ terracotta tint + จุดกะพริบ) / **done** (rank=✓ sage, ขีดฆ่า) / **editing** (inline input) / hover (โผล่ปุ่ม ✎ 🗑)
 - **Task list:** ว่าง ("ยังไม่มี task — พิมพ์ด้านบน 👆") / มีรายการ
 - **Room dropdown:** ปัจจุบัน(+แก้รหัส+copy) / สร้างใหม่ / เข้าห้องอื่น / danger zone ลบ(idle→confirm) · rename: checking/available/taken/invalid
 - **Account:** signed-out (ปุ่ม Sign in) / signed-in (avatar + dropdown: email, claim, sign out) / claimed vs not
@@ -125,8 +125,9 @@
 `PomodoroApp` (layout) · `Timer` · `ScheduleMain` (task list+form) · `TaskForm` · `BacklogView` · `SettingsPanel` · `DaySummary` · `InterruptButton` · `RoomBadge` · `AccountButton`
 
 #### 🌙 E. Visual ปัจจุบัน + จุดที่อยากให้ designer ช่วยขัด
-- **ธีม:** พื้นหลัง gradient พลบค่ำ (ม่วงพลัม→น้ำเงินเข้ม) + glassmorphism (กระจกฝ้า) + accent **amber**
-- **ยังไม่ polish เต็มที่ (ขอ designer ช่วย):** แท็บ Backlog/Settings, กล่องสรุปวันนี้, dropdown ห้อง/บัญชี (ยังเป็นการ์ดทึบสี zinc ไม่เข้าธีม glass) · spacing/typography บนมือถือ · (option) ใส่รูปพื้นหลังเมืองจริง
+- **ธีม Ember:** พื้นหลังกระดาษอุ่น (`.ember-bg` ครีม→ดินเผา) + `.paper-panel` (กระจกฝ้าบางๆ) + accent **terracotta `#c15f3c`** · break: sage/teal · ฟอนต์ Newsreader (serif/timer) + IBM Plex Sans Thai
+- **Token:** map เข้า shadcn CSS variables (`--background`, `--primary`, `--card`, `--border`, `--muted-foreground`…) + Ember extras (`--ink-soft`, `--faint`, `--success`, `--break-long`, `--ring-track`) ใน `globals.css`
+- **micro-interactions:** dropdown `pm-pop`, toast `pm-toast`, ring 1s linear, ปุ่ม/การ์ด ~0.15s · ทุก panel เข้าธีมครบแล้ว (Backlog/Settings/dropdown polish เสร็จ)
 
 ---
 
@@ -322,14 +323,16 @@ Slice 4 ✅ Backlog + End-of-day summary      → api/backlog, BacklogView, DayS
 | `c809c7b` | **Login (optional Google sign-in)** — Auth.js v5 + Google + Prisma adapter (`auth.ts`, `api/auth/*`, `api/room/claim`, `Providers`, `AccountButton`) + `User`/`Account` models · claim ห้อง + sync ข้ามเครื่อง |
 | `314dd66`, `8ac37e6` | **Deploy fixes:** `prisma generate` ใน build/postinstall (แก้ Vercel build) + สคริปต์ migrate Turso ผ่าน libsql (`scripts/migrate-turso.mjs`) |
 | `e240b61` | **Fix:** เปลี่ยนห้องขณะ login → บัญชีตามไปห้องใหม่ ไม่เด้งกลับ (rename อัปเดต `User.roomId`; create/join/delete เรียก claim) |
-| `65bc18a` | **UI redesign** — ธีม deep-cozy-dusk (gradient พลบค่ำ + glassmorphism) + **responsive** (มือถือ stack/timer บน, desktop sidebar+timer กลาง) |
+| `65bc18a` | **UI redesign #1** — ธีม deep-cozy-dusk (glassmorphism) + **responsive** (มือถือ stack) |
+| `5987f40` | **UI redesign #2 — Ember + Split (design handoff)** — ธีมกระดาษ/ดินเผา (terracotta) + layout Split 50/50 + ฟอนต์ Newsreader/IBM Plex Sans Thai + Timer serif/badge outline/dots · presentation-only |
+| *(post-handoff)* | **Polish:** เลิก `window.location.reload()` ใน endDay/interrupt → re-fetch (`usePomodoro.refresh`) ไม่กระพริบ + **toast** feedback + dropdown `pm-pop` animation |
 
 > **Build Log — ฟีเจอร์ Room (commit + push prod แล้ว · 2026-05-30):**
 > - ✅ **แก้ bug 3 จุด:** (1) *infinite fetch loop* → `useMemo` ครอบ `roomHeaders`  (2) *session โหลดผิดห้อง* → effect รอจน `roomId` พร้อม  (3) *noti แจ้งเตือนเด้งรัวๆ* (ticker ยิง expire ซ้ำตอน API ช้า) → in-flight guard ใน `triggerExpire` (พิสูจน์: เด้ง 1 ครั้ง เดิม ~5)
 > - ✅ **เพิ่มฟีเจอร์:** สร้างห้องใหม่ · แก้รหัสห้อง (ย้ายข้อมูล) + เช็ค code ซ้ำ live · **ลบห้อง (Stretch A — confirm 2 ชั้น → ห้องเปล่าใหม่)** · แก้ชื่อ/ลบ task · กัน task ที่โฟกัสอยู่ไม่ให้ลบ · focus คงที่ช่องหลัง Enter · timer โชว์ชื่อ task
 > - ✅ **แก้ bug ที่เจอตอนทดสอบ:** DELETE task ติด FK `ScheduleSlot` (`ON DELETE RESTRICT`) → ลบ slot ก่อน · เพิ่ม `@@index([roomId])` 3 ตาราง
 > - ✅ **แก้ bug หลัง login:** เปลี่ยนห้องขณะ login แล้วเด้งกลับห้องเดิม → sync `User.roomId` ทุกการเปลี่ยนห้อง (`e240b61`)
-> - ✅ **UI redesign + responsive** (`65bc18a`) — มือถือเดิม timer หลุดจอใช้ไม่ได้ → stack + ธีม dusk/glass · verify ทั้ง mobile + desktop
+> - ✅ **UI redesign + responsive** — มือถือเดิม timer หลุดจอใช้ไม่ได้ → stack · ธีมผ่าน 2 รอบ: dusk (`65bc18a`) → **Ember + Split** (`5987f40`, design handoff) · verify ทั้ง mobile + desktop ทุก state
 > - verify ผ่าน browser ทุกฟีเจอร์ + `tsc` + `build` เขียว · **ขึ้น prod จริงแล้ว**
 
 **Room — Known Limitations & Stretch Goals** (ตัดสินใจ 2026-05-30)
@@ -429,4 +432,4 @@ Project Overview · QA Artifacts Summary · Skills Demonstrated · Lessons Learn
 
 ---
 
-*Next (จากสถานะจริง 2026-05-31): Product + Room + Login + Deploy + UI redesign เสร็จและขึ้น prod แล้ว → เหลือ **Phase 2 QA** (Manual → E2E → Integration → Unit) ซึ่งเป็นพระเอกของ portfolio · งานเล็กค้าง: reset secrets, polish glass ส่วนที่เหลือ, (option) ใส่รูป bg จริง*
+*Next (จากสถานะจริง 2026-05-31): Product + Room + Login + Deploy + UI (Ember/Split) เสร็จและขึ้น prod แล้ว → เหลือ **Phase 2 QA** (Manual → E2E → Integration → Unit) ซึ่งเป็นพระเอกของ portfolio · งานเล็กค้าง: reset Google/Turso secrets, ขัดดีเทล UI เพิ่ม (เช่น toast ครอบคลุมขึ้น)*
