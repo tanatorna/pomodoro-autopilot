@@ -19,7 +19,7 @@ const plexThai = IBM_Plex_Sans_Thai({
 });
 
 export const metadata: Metadata = {
-  title: "Pomodoro Autopilot",
+  title: "Pomodachi",
   description: "Brain-dump → auto-schedule → auto-clock Pomodoro timer",
 };
 

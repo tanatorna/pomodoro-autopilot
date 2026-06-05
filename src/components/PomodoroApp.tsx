@@ -209,7 +209,7 @@ export function PomodoroApp() {
         className="absolute top-0 left-0 h-14 flex items-center px-4 sm:px-6 z-30 text-lg font-semibold text-foreground whitespace-nowrap"
         style={{ fontFamily: "var(--font-heading)", textShadow: "0 1px 14px rgba(255,248,240,0.75)" }}
       >
-        🍅 Autopilot
+        🍅 Pomodachi
       </h1>
 
       {/* Timer (hero) — ฝั่งซ้าย 60% · ลอยบนรูปตรงๆ */}
