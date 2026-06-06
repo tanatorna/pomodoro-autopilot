@@ -77,9 +77,43 @@ export async function POST(request: Request) {
     case "restart":
       next = restart(current, nowMs, body.durations);
       break;
-    case "expire":
+    case "expire": {
+      // จำ state ก่อน tick — ใช้ดูว่าเพิ่งจบลูก WORK ของ task อะไร
+      const wasWork = current.state === "WORK";
+      const finishedTaskId = current.currentTaskId;
       next = tick(current, nowMs, body.durations);
+
+      // ถ้า WORK เพิ่งจบจริง (เปลี่ยน state ไป BREAK) → นับ pomodoro ของ task + ปิด slot
+      if (wasWork && next.state !== "WORK" && finishedTaskId !== null) {
+        // mark slot ที่กำลังทำเป็น "completed" (slot แรกที่ pending ของ task นี้)
+        const slot = await prisma.scheduleSlot.findFirst({
+          where: { roomId, status: "pending", taskId: finishedTaskId },
+          orderBy: { slotIndex: "asc" },
+        });
+        if (slot) {
+          await prisma.scheduleSlot.update({
+            where: { id: slot.id },
+            data: { status: "completed" },
+          });
+        }
+
+        // เพิ่ม Task.completedPomodoros + ถ้าครบ estimated → status = done
+        const task = await prisma.task.findFirst({
+          where: { id: finishedTaskId, roomId },
+        });
+        if (task) {
+          const nextCompleted = task.completedPomodoros + 1;
+          await prisma.task.update({
+            where: { id: task.id },
+            data: {
+              completedPomodoros: nextCompleted,
+              status: nextCompleted >= task.estimatedPomodoros ? "done" : task.status,
+            },
+          });
+        }
+      }
       break;
+    }
     case "switch": {
       // เปลี่ยน task ที่กำลังทำ → void ลูกปัจจุบัน + start WORK ใหม่กับ taskId
       await voidCurrentSlot(roomId);
