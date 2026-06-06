@@ -80,6 +80,8 @@ export async function POST(request: Request) {
     case "expire": {
       // จำ state ก่อน tick — ใช้ดูว่าเพิ่งจบลูก WORK ของ task อะไร
       const wasWork = current.state === "WORK";
+      const wasBreak =
+        current.state === "SHORT_BREAK" || current.state === "LONG_BREAK";
       const finishedTaskId = current.currentTaskId;
       next = tick(current, nowMs, body.durations);
 
@@ -110,6 +112,32 @@ export async function POST(request: Request) {
               status: nextCompleted >= task.estimatedPomodoros ? "done" : task.status,
             },
           });
+        }
+      }
+
+      // ถ้า BREAK เพิ่งจบ → เริ่ม WORK ลูกใหม่
+      // engine carry currentTaskId เดิมมา (ถูกสำหรับ task หลายลูก) แต่ถ้า task นั้น
+      // "done" แล้ว (ครบ estimated) ต้องเลื่อนไป task ถัดไปในคิว — ไม่งั้น timer ค้างที่ task ที่ขีดฆ่าแล้ว
+      if (wasBreak && next.state === "WORK") {
+        const stillTask =
+          next.currentTaskId != null
+            ? await prisma.task.findFirst({
+                where: { id: next.currentTaskId, roomId },
+              })
+            : null;
+
+        // task ปัจจุบันยังทำต่อได้ก็เมื่อ "ยังไม่ done"
+        if (!stillTask || stillTask.status === "done") {
+          const nextTask = await prisma.task.findFirst({
+            where: { roomId, status: { in: ["pending", "in-progress"] } },
+            orderBy: [{ priority: "desc" }, { id: "asc" }],
+          });
+          if (nextTask) {
+            next = { ...next, currentTaskId: nextTask.id };
+          } else {
+            // หมดคิว → กลับ IDLE (อย่าเริ่ม WORK ลอยๆ บน task ที่ขีดฆ่า)
+            next = { ...INITIAL_STATE, completedPomodoros: next.completedPomodoros };
+          }
         }
       }
       break;
