@@ -38,7 +38,7 @@ export function PomodoroApp() {
   const {
     timerState, display, remainingMs, loading,
     handleStart, handlePause, handleResume, handleRestart,
-    handleSwitchTask, handleSkip, refresh, syncError, wakeLockActive, dbg,
+    handleSwitchTask, handleSkip, refresh, syncError, wakeLockActive,
   } = usePomodoro(durations, roomHeaders);
 
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -300,10 +300,10 @@ export function PomodoroApp() {
 
   return (
     <div className="min-h-screen ember-bg text-foreground relative flex flex-col md:grid md:grid-cols-[3fr_2fr] md:h-screen">
-      {/* build version + live debug (มุมล่างซ้าย ชั่วคราว) — สำหรับ diagnose timer ค้างบนเครื่องจริง */}
-      <div className="fixed bottom-1 left-1 z-[60] text-[10px] font-mono text-lime-700 bg-white/70 rounded px-1 pointer-events-none max-w-[95vw] break-all">
-        {process.env.NEXT_PUBLIC_BUILD_ID} · {dbg}
-      </div>
+      {/* build version (เล็กมุมล่างซ้าย จางๆ) — ยืนยันว่า client รัน bundle เวอร์ชันไหน */}
+      <span className="fixed bottom-1 left-1 z-[60] text-[9px] font-mono text-[var(--faint)] opacity-40 pointer-events-none">
+        {process.env.NEXT_PUBLIC_BUILD_ID}
+      </span>
 
       {/* Logo — ลอยมุมซ้ายบน กลืนกับพื้นหลัง */}
       <h1

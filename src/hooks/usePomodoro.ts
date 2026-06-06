@@ -30,7 +30,6 @@ interface UsePomodoroReturn {
   refresh: () => Promise<void>;
   syncError: string | null;
   wakeLockActive: boolean;
-  dbg: string;
 }
 
 /** response อาจมี serverNow แนบมา (สำหรับ clock-offset) */
@@ -41,22 +40,27 @@ async function callSessionAPI(
   headers: Record<string, string>,
   timeoutMs = 8000
 ): Promise<SessionResponse> {
-  // timeout/abort — กัน request ค้างถาวร (เช่น connection ตายเงียบๆ ตอน resume จากล็อคจอมือถือ)
-  // ถ้าไม่ abort, promise จะไม่ settle → expiringRef ติด true → timer แข็งค้าง
+  // HARD timeout ผ่าน Promise.race — reject แน่นอนไม่ว่า fetch หรือ res.json() จะค้าง
+  // (บนมือถือเจอเคส abort fetch ได้ แต่ res.json() ที่อ่าน body ค้างอยู่ไม่ reject → promise ไม่ settle
+  //  → .finally ไม่ทำงาน → expiringRef ค้าง BUSY ถาวร → timer แข็งค้าง)
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
+  const fetchPromise = (async () => {
     const res = await fetch("/api/session", {
       method: "POST",
       headers,
       body: JSON.stringify(body),
       signal: controller.signal,
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`); // เช่น 402 (Vercel disabled), 500
-    return res.json() as Promise<SessionResponse>;
-  } finally {
-    clearTimeout(timer);
-  }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`); // เช่น 402, 500
+    return (await res.json()) as SessionResponse;
+  })();
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => {
+      controller.abort();
+      reject(new Error("timeout"));
+    }, timeoutMs)
+  );
+  return Promise.race([fetchPromise, timeoutPromise]);
 }
 
 function notify(title: string, body: string) {
@@ -105,28 +109,21 @@ export function usePomodoro(
   // เมื่อเน็ตกลับ + API สำเร็จ → state ใหม่ endsAt เปลี่ยน → key ต่าง → alarm ครั้งใหม่ทำได้
   const alarmedForEndsAtRef = useRef<number | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
-  // ── debug (โชว์บนจอเสมอ ชั่วคราว เพื่อ diagnose) ──
-  const tickRef = useRef(0);
-  const expTryRef = useRef(0);
-  const expPassRef = useRef(0);
-  const lastExpRef = useRef("—");
-  const [dbg, setDbg] = useState("");
   useEffect(() => { durationsRef.current = durations; }, [durations]);
   useEffect(() => { headersRef.current = roomHeaders; }, [roomHeaders]);
 
   // ─── หมดเวลา (ใช้ร่วมกันทั้ง ticker + visibility) ─────────
+  // LOCAL-FIRST: ขยับ FSM ในเครื่องทันที (ไม่รอ/ไม่ถูกบล็อกด้วยเน็ต) → จอไม่มีวันค้าง
+  // network sync เป็นแค่ best-effort + guarded แยก (กันยิง expire ซ้อน)
   const triggerExpire = useCallback(() => {
-    expTryRef.current++;
-    if (expiringRef.current) return;
-    expiringRef.current = true;
-    expPassRef.current++;
-    lastExpRef.current = "pending";
-
     const state = timerStateRef.current;
+    if (state.endsAt === null) return;
+    if (!isExpired(state.endsAt, nowServer())) return; // ยังไม่หมดจริง
+
     const endsAtKey = state.endsAt;
 
-    // alarm/notify ครั้งเดียวต่อ expire event (endsAt) — กัน loop ตอน API fail
-    if (endsAtKey !== null && alarmedForEndsAtRef.current !== endsAtKey) {
+    // alarm/notify ครั้งเดียวต่อ expire event (endsAt)
+    if (alarmedForEndsAtRef.current !== endsAtKey) {
       alarmedForEndsAtRef.current = endsAtKey;
       playAlarm(state.state === "WORK" ? "work" : "break");
       const label = state.state === "WORK" ? "หมดเวลาทำงาน! 🍅" : "หมดเวลา Break! 💪";
@@ -134,39 +131,36 @@ export function usePomodoro(
       notify(label, body);
     }
 
-    // OPTIMISTIC transition — คำนวณ state ถัดไปในเครื่องด้วย engine (pure) แล้วอัปเดตจอทันที
-    // ใช้ nowServer() (เวลา server) → ตัดสิน expiry ตรงกับ server ไม่เหลื่อม
+    // ── OPTIMISTIC advance (นอก guard — ทำเสมอ ไม่ขึ้นกับเน็ต) ──
+    // เปลี่ยน timerStateRef → tick ถัดไปจะเห็น state ใหม่ (ยังไม่หมด) จึงไม่ขยับซ้ำ = self-limiting
     const localNext = tick(state, nowServer(), durationsRef.current);
-    const advancedLocally = localNext.state !== state.state;
     if (localNext !== state) {
       setTimerState(localNext);
       timerStateRef.current = localNext;
       setRemainingMs(localNext.endsAt ? computeRemaining(localNext.endsAt, nowServer()) : 0);
     }
 
-    // sync server (authoritative) แล้ว reconcile · retry ทุก tick ถ้า fail
+    // ── network sync (best-effort, guarded แยกเฉพาะ network) ──
+    if (expiringRef.current) return; // มี expire ค้างอยู่ → ข้าม (local ขยับไปแล้ว ไม่ค้าง)
+    expiringRef.current = true;
     callSessionAPI({ action: "expire", durations: durationsRef.current }, headersRef.current)
       .then((next) => {
         syncClock(next.serverNow);
-        // safety: ถ้าเราขยับ optimistic ไปแล้ว แต่ server ยังตอบ state เดิม (นาฬิกาเหลื่อม/latency)
-        // → อย่า revert กลับ (ไม่งั้นจะวนค้าง) · server จะตามทันใน sync ถัดไป
-        if (!(advancedLocally && next.state === state.state)) {
+        // reconcile เฉพาะเมื่อ server ขยับไป state ใหม่ (server-clamp การันตีขยับ)
+        // ถ้า server ตอบ state เดิม (เหลื่อม) → ไม่ revert (local ถูกแล้ว)
+        if (next.state !== state.state) {
           setTimerState(next);
           timerStateRef.current = next;
           setRemainingMs(next.endsAt ? computeRemaining(next.endsAt, nowServer()) : 0);
         }
-        setSyncError(null); // สำเร็จ → เคลียร์ error
-        lastExpRef.current = `ok→${next.state}`;
+        setSyncError(null);
       })
       .catch((err) => {
-        // ล้มเหลว → แจ้ง user (เดิมเงียบ ทำให้ "ค้าง" โดยไม่รู้สาเหตุ) · จะ retry ใน tick ถัดไป
         const status = String((err as Error)?.message ?? "");
-        lastExpRef.current = `ERR ${status}`;
-        setSyncError(
-          status.includes("402")
-            ? "เชื่อมต่อ server ไม่ได้ (402) — เช็คว่าใช้โดเมนถูก/Vercel ยัง active"
-            : "ซิงค์ไม่สำเร็จ — เน็ตมีปัญหา กำลังลองใหม่…"
-        );
+        // ไม่แจ้ง error ถ้าแค่ timeout (local ขยับไปแล้ว) · แจ้งเฉพาะ 402 (โดเมน/server ตาย)
+        if (status.includes("402")) {
+          setSyncError("เชื่อมต่อ server ไม่ได้ (402) — เช็คว่าใช้โดเมนถูก/Vercel ยัง active");
+        }
       })
       .finally(() => { expiringRef.current = false; });
   }, []);
@@ -216,18 +210,11 @@ export function usePomodoro(
   // ─── Ticker ───────────────────────────────
   useEffect(() => {
     const interval = setInterval(() => {
-      tickRef.current++;
       const state = timerStateRef.current;
-      const nowMs = nowServer(); // ใช้เวลา server → expiry ตรงกัน
-
-      // debug snapshot ทุก tick (unconditional → ถ้า tick ค้าง = ticker ตาย)
-      const rem = state.endsAt ? computeRemaining(state.endsAt, nowMs) : (state.remainingMs ?? 0);
-      setDbg(
-        `t${tickRef.current} ${state.state} ${Math.ceil(rem/1000)}s exp:${expTryRef.current}/${expPassRef.current} ${expiringRef.current?"BUSY":"free"} off:${clockOffsetRef.current} ${lastExpRef.current}`
-      );
-
       if (state.state === "IDLE" || state.state === "PAUSED") return;
       if (state.endsAt === null) return;
+
+      const nowMs = nowServer(); // ใช้เวลา server → expiry ตรงกัน
 
       if (isExpired(state.endsAt, nowMs)) {
         triggerExpire();
@@ -381,6 +368,5 @@ export function usePomodoro(
     refresh,
     syncError,
     wakeLockActive,
-    dbg,
   };
 }
