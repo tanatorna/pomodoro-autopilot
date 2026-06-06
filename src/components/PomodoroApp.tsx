@@ -172,25 +172,53 @@ export function PomodoroApp() {
     await generateSchedule();
   }
 
-  async function handlePriorityUp(taskId: number, current: number) {
-    await fetch(`/api/tasks/${taskId}`, {
-      method: "PATCH",
-      headers: roomHeaders,
-      body: JSON.stringify({ priority: current + 1 }),
-    });
+  /** ย้าย task ขึ้น/ลง 1 ตำแหน่งใน queue (สลับกับเพื่อนบ้าน)
+   *  เดิมใช้ priority ± 1 → พังเมื่อทุก task priority เท่ากัน (เช่นทุกตัว = 0 ค่า default)
+   *  วิธีใหม่: เรียงตามที่แสดงจริง (priority desc, id asc) → สลับกับเพื่อนบ้าน →
+   *  reassign priority ให้ต่างกันชัด (len..1) เฉพาะตัวที่เปลี่ยน → การันตีขยับ 1 ตำแหน่งเสมอ */
+  async function moveTask(taskId: number, dir: "up" | "down") {
+    // queue = task ที่ยังไม่ done เรียงแบบเดียวกับที่แสดงใน ScheduleMain
+    const queue = tasks
+      .filter((t) => t.status !== "done")
+      .sort((a, b) =>
+        b.priority !== a.priority ? b.priority - a.priority : a.id - b.id
+      );
+
+    const i = queue.findIndex((t) => t.id === taskId);
+    if (i === -1) return;
+    const j = dir === "up" ? i - 1 : i + 1;
+    if (j < 0 || j >= queue.length) return; // สุดขอบแล้ว ไม่ต้องทำอะไร
+
+    const moving = queue[i];
+    const neighbor = queue[j];
+    if (!moving || !neighbor) return;
+
+    // สลับตำแหน่งใน array
+    const reordered = [...queue];
+    reordered[i] = neighbor;
+    reordered[j] = moving;
+
+    // reassign priority แบบ distinct: บนสุด = len, ล่างสุด = 1
+    // PATCH เฉพาะตัวที่ค่าเปลี่ยน (ปกติ = 2 ตัวที่สลับ)
+    const len = reordered.length;
+    await Promise.all(
+      reordered.map((t, idx) => {
+        const newPriority = len - idx;
+        if (t.priority === newPriority) return null;
+        return fetch(`/api/tasks/${t.id}`, {
+          method: "PATCH",
+          headers: roomHeaders,
+          body: JSON.stringify({ priority: newPriority }),
+        });
+      })
+    );
+
     await loadTasks();
     await generateSchedule();
   }
 
-  async function handlePriorityDown(taskId: number, current: number) {
-    await fetch(`/api/tasks/${taskId}`, {
-      method: "PATCH",
-      headers: roomHeaders,
-      body: JSON.stringify({ priority: Math.max(0, current - 1) }),
-    });
-    await loadTasks();
-    await generateSchedule();
-  }
+  const handlePriorityUp = (taskId: number) => moveTask(taskId, "up");
+  const handlePriorityDown = (taskId: number) => moveTask(taskId, "down");
 
   /** ปักวัน / เคลียร์วันให้ task ใน backlog */
   async function handleScheduleTask(taskId: number, isoDate: string | null) {

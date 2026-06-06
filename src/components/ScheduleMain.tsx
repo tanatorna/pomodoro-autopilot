@@ -10,8 +10,8 @@ interface ScheduleMainProps {
   pendingCount: number;
   onAdd: (title: string, estimatedPomodoros: number) => Promise<void>;
   onSelect: (taskId: number) => Promise<void>;
-  onPriorityUp: (taskId: number, current: number) => Promise<void>;
-  onPriorityDown: (taskId: number, current: number) => Promise<void>;
+  onPriorityUp: (taskId: number) => Promise<void>;
+  onPriorityDown: (taskId: number) => Promise<void>;
   onEdit: (taskId: number, patch: { title?: string; estimatedPomodoros?: number }) => Promise<void>;
   /** ย้าย task ไป backlog (ไม่ทำวันนี้แล้ว) */
   onMoveToBacklog: (taskId: number) => Promise<void>;
@@ -179,14 +179,14 @@ export function ScheduleMain({
                     {!isDone && (
                       <div className="flex items-center gap-0.5">
                         <button
-                          onClick={() => onPriorityUp(task.id, task.priority)}
+                          onClick={() => onPriorityUp(task.id)}
                           className="text-[var(--faint)] hover:text-primary text-xs w-5 h-5 flex items-center justify-center leading-none rounded hover:bg-secondary"
                           title="เพิ่ม priority"
                         >
                           ▲
                         </button>
                         <button
-                          onClick={() => onPriorityDown(task.id, task.priority)}
+                          onClick={() => onPriorityDown(task.id)}
                           className="text-[var(--faint)] hover:text-foreground text-xs w-5 h-5 flex items-center justify-center leading-none rounded hover:bg-secondary"
                           title="ลด priority"
                         >
