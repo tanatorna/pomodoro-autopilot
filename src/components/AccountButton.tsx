@@ -56,16 +56,21 @@ export function AccountButton({ roomId, roomHeaders }: AccountButtonProps) {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          {/* scrim — frost ทั้งจอบางๆ (3px) ให้พื้นหลังนุ่มลงนิด แต่ยังเห็นชัด */}
+          <div
+            className="fixed inset-0 z-40 bg-black/[0.04]"
+            style={{ backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)" }}
+            onClick={() => setOpen(false)}
+          />
           <div
             className="absolute top-full right-0 mt-2 z-50 pm-pop
               border border-border rounded-2xl p-4 w-72"
             style={{
-              // glass แท้ (subtle): โปร่งพอเห็นพื้นหลัง แต่ blur แรงทำให้ข้อความหลังเป็นฝ้า ไม่ทะลุ
-              background: "rgba(255, 252, 246, 0.6)",
+              // glass แท้ แต่อ่านง่าย: opacity 0.78 + blur 32px + พื้นหน้า frost แล้ว
+              background: "rgba(255, 252, 246, 0.78)",
               backdropFilter: "blur(32px) saturate(150%)",
               WebkitBackdropFilter: "blur(32px) saturate(150%)",
-              boxShadow: "0 14px 40px rgba(120,80,40,0.18)",
+              boxShadow: "0 14px 40px rgba(120,80,40,0.2)",
             }}
           >
             <p className="text-xs text-muted-foreground mb-1">ล็อกอินด้วย</p>
