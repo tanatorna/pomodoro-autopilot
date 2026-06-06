@@ -132,10 +132,11 @@ export function RoomBadge({
             className="absolute top-full right-0 mt-2 z-50 pm-pop
               border border-border rounded-2xl p-4 w-80"
             style={{
-              background: "rgba(255, 252, 246, 0.96)",
-              backdropFilter: "blur(22px) saturate(140%)",
-              WebkitBackdropFilter: "blur(22px) saturate(140%)",
-              boxShadow: "0 14px 40px rgba(120,80,40,0.22)",
+              // glass แท้ (subtle): โปร่งพอเห็นพื้นหลัง แต่ blur แรงทำให้ข้อความหลังเป็นฝ้า ไม่ทะลุ
+              background: "rgba(255, 252, 246, 0.6)",
+              backdropFilter: "blur(32px) saturate(150%)",
+              WebkitBackdropFilter: "blur(32px) saturate(150%)",
+              boxShadow: "0 14px 40px rgba(120,80,40,0.18)",
             }}
           >
             {/* ── ห้องปัจจุบัน ── */}
