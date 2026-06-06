@@ -31,14 +31,24 @@ interface UsePomodoroReturn {
 
 async function callSessionAPI(
   body: Record<string, unknown>,
-  headers: Record<string, string>
+  headers: Record<string, string>,
+  timeoutMs = 8000
 ): Promise<TimerState> {
-  const res = await fetch("/api/session", {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
-  });
-  return res.json() as Promise<TimerState>;
+  // timeout/abort — กัน request ค้างถาวร (เช่น connection ตายเงียบๆ ตอน resume จากล็อคจอมือถือ)
+  // ถ้าไม่ abort, promise จะไม่ settle → expiringRef ติด true → timer แข็งค้าง
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch("/api/session", {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    return res.json() as Promise<TimerState>;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function notify(title: string, body: string) {
