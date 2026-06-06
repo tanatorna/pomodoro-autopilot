@@ -11,6 +11,7 @@ import {
   computeRemaining,
   formatTime,
   isExpired,
+  tick,
 } from "@/engine";
 import type { DurationConfig } from "@/engine/transitions";
 import { playAlarm, primeAudio } from "@/lib/sound";
@@ -103,7 +104,17 @@ export function usePomodoro(
       notify(label, body);
     }
 
-    // API call ยังพยายามทุก tick ตอน expired (ให้ retry ตอนเน็ตกลับ) แต่จะไม่ alarm ซ้ำ
+    // OPTIMISTIC transition — คำนวณ state ถัดไปในเครื่องด้วย engine (pure) แล้วอัปเดตจอทันที
+    // ไม่รอ server → display ไม่ค้างแม้ expire request ช้า/ค้าง (สาเหตุของ "ค้างที่ 00:01")
+    // server จะ reconcile ทีหลัง (จัดการ task counting + เลื่อน task — logic ฝั่ง server)
+    const localNext = tick(state, Date.now(), durationsRef.current);
+    if (localNext !== state) {
+      setTimerState(localNext);
+      timerStateRef.current = localNext;
+      setRemainingMs(localNext.endsAt ? computeRemaining(localNext.endsAt, Date.now()) : 0);
+    }
+
+    // sync server (authoritative) แล้ว reconcile · retry ทุก tick ถ้า fail
     callSessionAPI({ action: "expire", durations: durationsRef.current }, headersRef.current)
       .then((next) => {
         setTimerState(next);
