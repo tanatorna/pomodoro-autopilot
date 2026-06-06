@@ -1,11 +1,12 @@
-# Pomodoro Autopilot — Full SDLC (Final)
+# Pomodachi — Full SDLC (Final)
+*เดิมชื่อ "Pomodoro Autopilot" · repo/folder/URL ยังเป็น `pomodoro-autopilot`*
 
 > ระบบจัดเวลาแบบ auto: brain dump งาน → ระบบจัด Pomodoro + เดินนาฬิกาเอง + เตือนเมื่อหมดเวลา โดยไม่ต้องตั้งเวลาเอง
 >
 > **สถานะ:** Flagship project (แทนที่ expense tracker) — ทำใน **Week 5–6** ของ 12-Week SDET Plan
 > **เป้าหมายซ้อน:** Portfolio piece + ใช้ตอบสัมภาษณ์ SDET ("PM ที่เขียน production-grade automated test ได้")
 >
-> **อัปเดตล่าสุด (2026-05-31):** 🚀 **Deploy ขึ้น prod แล้ว** (Vercel + Turso) — Product เสร็จ Slice 1–4 + enhancements · ฟีเจอร์ **Room** ครบ (แยกข้อมูล/แชร์/สร้าง/แก้รหัส/ลบ) · **Login (Google OAuth, optional)** ใช้งานได้จริงบน prod · **UI redesign 2 รอบ** (dusk → **Ember** กระดาษ/ดินเผา + layout **Split 50/50** ตาม design handoff) + responsive (มือถือใช้ได้) · ผ่านสมรภูมิ deploy (Prisma generate, Turso migrate, OAuth setup) · **Phase 2 QA ยังไม่เริ่ม ← งานหลักที่เหลือ**
+> **อัปเดตล่าสุด (2026-06-06):** 🚀 **Deploy ขึ้น prod แล้ว** (Vercel + Turso) — Product เสร็จ Slice 1–4 + enhancements รอบ 2 · เปลี่ยนชื่อแอป "Autopilot" → **Pomodachi** · ฟีเจอร์ **Room** ครบ · **Login (Google OAuth, optional)** · **UI 3 รอบ:** dusk → Ember+Split → **Glass/Mirror UI บนรูปอินทีเรีย** (60:40, panel ขวาเต็มความสูง) · **Backlog ปักวันได้** (scheduledFor + auto-promote) · **Switch/skip task กลางลูก** · ผ่านสมรภูมิ deploy + แก้ infinite alarm loop ตอนเน็ตตัด · **Phase 2 QA ยังไม่เริ่ม ← งานหลักที่เหลือ**
 
 ---
 
@@ -61,8 +62,11 @@
 - **Configurable durations** — ตั้งเวลา WORK/BREAK/LONG_BREAK เองได้ (แท็บ Settings)
 - **Room** — แยกข้อมูลต่อผู้ใช้ + แชร์ห้องผ่านลิงก์ (สร้าง / แก้รหัส+เช็คซ้ำ / เข้าห้องอื่น / ลบห้อง)
 - **Login (optional Google sign-in)** — claim ห้อง + เข้าถึงข้ามเครื่อง (ไม่บังคับ login)
-- **Task edit / delete** — แก้ชื่อ inline + ลบ task (กัน task ที่กำลังโฟกัสไม่ให้ลบ)
-- **Responsive + ธีม Ember (Split 50/50)** — ใช้บนมือถือได้ (มือถือ: timer บน + panel ล่าง · desktop: timer ซ้าย + panel ขวา)
+- **Task edit / delete** — แก้ชื่อ + จำนวน 🍅 inline · ลบ task (กัน task ที่กำลังโฟกัสไม่ให้ลบ)
+- **Task picker ตอน IDLE (C2)** — preview "ถัดไป · &lt;task&gt;" + ปุ่ม "เปลี่ยน" ก่อนกดเริ่ม
+- **Switch/Skip task กลางลูก** — คลิก "เริ่ม" task อื่นใน list = switch · ปุ่ม "⏭ ข้าม" ใน timer = ไป next pending (ลูกที่ทิ้งไม่นับ, confirm 2 ชั้น)
+- **Defer to Backlog + scheduledFor** — task ใน Schedule กดปุ่ม 📥 ย้ายไป Backlog · Backlog ปักวันได้ (native date picker, แยก 2 section: มีกำหนด/ยังไม่กำหนด) · auto-promote ตอนถึงวันที่ปัก
+- **Responsive + ธีม Ember + Glass/Mirror UI** — มือถือ stack · desktop Split **60:40** (timer ซ้าย, panel ขวาเต็มความสูง) บนพื้นรูปอินทีเรีย
 
 ### OUT — Future Work (เขียนเป็น Roadmap ใน README)
 - Line Bot notification (แก้ปัญหา mobile-background reliability)
@@ -326,6 +330,17 @@ Slice 4 ✅ Backlog + End-of-day summary      → api/backlog, BacklogView, DayS
 | `65bc18a` | **UI redesign #1** — ธีม deep-cozy-dusk (glassmorphism) + **responsive** (มือถือ stack) |
 | `5987f40` | **UI redesign #2 — Ember + Split (design handoff)** — ธีมกระดาษ/ดินเผา (terracotta) + layout Split 50/50 + ฟอนต์ Newsreader/IBM Plex Sans Thai + Timer serif/badge outline/dots · presentation-only |
 | *(post-handoff)* | **Polish:** เลิก `window.location.reload()` ใน endDay/interrupt → re-fetch (`usePomodoro.refresh`) ไม่กระพริบ + **toast** feedback + dropdown `pm-pop` animation |
+| `8f91b5e` | **Timer ring เดินหน้า** — เปลี่ยนจาก deplete (เต็ม→หาย) เป็น forward-fill (ว่าง→เต็ม) ตามเวลาที่ผ่านไป |
+| `b372f73`, `e802b26`, `316653b` | **UI redesign #3 — Glass/Mirror UI** — พื้นหลังรูปอินทีเรีย (`/public/bg-interior.jpg`) + frosted-glass panel · ratio **60:40** (timer ซ้าย, panel ขวาเต็มความสูงถึงขอบบน) · โลโก้ลอยมุมซ้าย, room/account อยู่หัว panel ขวา · timer/header กลืนกับพื้นรูป (radial scrim แทนการ์ดกระจก) |
+| `4d226de`, `64fff2e`, `545a9a2` | **Readability fixes บน glass:** empty-state + Reset settings + Backlog hint สีจางเกิน → `ink-soft` · room/account dropdown โปร่งเกิน ตัวอักษรทะลุ → override paper-panel เป็น 96% opacity · เอา `overflow-hidden` ออกจาก aside กัน dropdown clip · Thai ใน Newsreader heading → fallback ไป IBM Plex Sans Thai (กลืนกับ body) |
+| `fc5206e` | **C2 task picker ตอน IDLE** — preview "ถัดไป · &lt;task&gt; [เปลี่ยน]" + dropdown เลือก task หรือ "ไม่ผูก task" ก่อนกดเริ่มโฟกัส |
+| `8d88e29` | **Rename:** logo + browser title "Pomodoro Autopilot" → **Pomodachi** (folder/repo คงเดิม) |
+| `8fed4e5`, `2ba7785` | **Task UX:** TaskForm stack 2 แถว (input บน · stepper+ปุ่ม ล่าง) เพื่อรับชื่อยาว · task item ใน Schedule + Backlog เปลี่ยนเป็น 2-row layout (title wrap หลายบรรทัด · controls ชิดขวา row 2) ไม่ตัด `...` อีก |
+| `98c1468` | **Switch/Skip task กลางลูก:** คลิก "เริ่ม" task อื่นใน list ขณะ WORK/PAUSED = switch · ปุ่ม "⏭ ข้าม task นี้" ใน Timer = skip ไป next pending · ทั้งคู่ confirm 2 ชั้น (ลูกที่ทิ้งไม่นับ) · `api/session` action `switch`/`skip` void slot ปัจจุบัน + start WORK ใหม่ |
+| `a2e31c0` | **แก้ pomodoros ตอน edit task** — โหมด edit แสดง stepper `− 1🍅 +` คู่กับ input ชื่อ · commit ทั้งคู่ตอน blur · regenerate schedule ถ้าจำนวนเปลี่ยน |
+| `e868cec` | **Backlog ปักวันได้** — `Task.scheduledFor: DateTime?` + native `<input type="date">` เฉพาะใน Backlog · Backlog แยก 2 section "📅 มีกำหนด" / "🌙 ยังไม่กำหนด" · GET tasks/backlog auto-promote `scheduledFor ≤ today` → pending · Schedule task มีปุ่ม "→ Backlog" สำหรับเลื่อนออกจากวันนี้ |
+| `cfb90e4` | **เสียง alarm ใหม่** — marimba do-mi-sol (C5-E5-G5) ซ้ำ 2 รอบ ~1.66s · triangle wave warm + compressor · ไม่น่าตกใจ |
+| `abbbf20` | **Fix:** infinite alarm loop ตอนเน็ตตัด → alarm `endsAt`-keyed idempotency (alarm 1 ครั้ง/ลูก ไม่ว่า API retry กี่รอบ) |
 
 > **Build Log — ฟีเจอร์ Room (commit + push prod แล้ว · 2026-05-30):**
 > - ✅ **แก้ bug 3 จุด:** (1) *infinite fetch loop* → `useMemo` ครอบ `roomHeaders`  (2) *session โหลดผิดห้อง* → effect รอจน `roomId` พร้อม  (3) *noti แจ้งเตือนเด้งรัวๆ* (ticker ยิง expire ซ้ำตอน API ช้า) → in-flight guard ใน `triggerExpire` (พิสูจน์: เด้ง 1 ครั้ง เดิม ~5)
@@ -334,6 +349,11 @@ Slice 4 ✅ Backlog + End-of-day summary      → api/backlog, BacklogView, DayS
 > - ✅ **แก้ bug หลัง login:** เปลี่ยนห้องขณะ login แล้วเด้งกลับห้องเดิม → sync `User.roomId` ทุกการเปลี่ยนห้อง (`e240b61`)
 > - ✅ **UI redesign + responsive** — มือถือเดิม timer หลุดจอใช้ไม่ได้ → stack · ธีมผ่าน 2 รอบ: dusk (`65bc18a`) → **Ember + Split** (`5987f40`, design handoff) · verify ทั้ง mobile + desktop ทุก state
 > - verify ผ่าน browser ทุกฟีเจอร์ + `tsc` + `build` เขียว · **ขึ้น prod จริงแล้ว**
+
+> **Build Log — Round 2 (UI redesign #3 + Backlog + post-deploy bugs · 2026-06-06):**
+> - ✅ **แก้ bug 5 จุดที่เจอบน prod:** (4) *Thai chars หลุดจาก Plex Thai* (Newsreader ไม่มี glyph ไทย → fallback ไป Sukhumvit) → ใส่ font stack `var(--font-heading), var(--font-sans), system-ui` ที่ heading inline 3 จุด · (5) *room/account dropdown โปร่งเกิน* → override opacity 0.96 + เอา `aside overflow-hidden` ออก (dropdown clip ที่ขอบซ้าย panel) · (6) *empty-state ตัวอักษรจาง* → ink-soft · (7) *input รับชื่อยาวไม่ได้* → stack form + task item 2-row + tooltip · (8) **infinite alarm loop ตอนเน็ตตัด** → API fail → state ไม่อัปเดต → ticker tick ถัดมา trigger ซ้ำทุก 1 วิ · แก้ด้วย `endsAt`-keyed idempotency ใน `triggerExpire` (alarm 1 ครั้ง/ลูก แม้ API retry หลายรอบ — verified: 1 alarm vs เดิม 6/6sec)
+> - ✅ **เพิ่มฟีเจอร์รอบสอง:** UI Glass/Mirror + photo bg + 60:40 split + panel เต็มขอบบน · C2 task picker ตอน IDLE · rename → Pomodachi · switch/skip task กลางลูก · แก้ pomodoros inline · **Backlog ปักวันได้** (scheduledFor + auto-promote) · marimba alarm + idempotency · timer ring forward-fill
+> - verify ผ่าน browser ทุก scenario (รวม simulated offline) + `tsc` + `build` เขียว · ทุก commit push prod แล้ว
 
 **Room — Known Limitations & Stretch Goals** (ตัดสินใจ 2026-05-30)
 
@@ -364,6 +384,9 @@ Slice 4 ✅ Backlog + End-of-day summary      → api/backlog, BacklogView, DayS
 | `DATABASE_URL` ไม่ได้ตั้งใน Vercel | `Unable to open ./dev.db: 14` (fallback ไป SQLite local บน serverless) | ตั้ง `DATABASE_URL` (libsql) + `TURSO_AUTH_TOKEN` ใน Vercel env → ทุกฟีเจอร์ DB กลับมาทำงาน |
 | Auth callback error | "problem with the server configuration" | ต้องตั้ง `AUTH_SECRET` + Google creds ใน Vercel (ไม่ใช่แค่ local) + redeploy |
 | Google `redirect_uri_mismatch` | Error 400 ตอนเลือกบัญชี | ใส่ redirect URI ให้ตรงเป๊ะใน **Authorized redirect URIs** (ไม่ใช่ JavaScript origins), ห้าม `//`/`/` ท้าย |
+| Dev runtime cache เก่าหลัง `prisma generate` | `Unknown argument scheduledFor` แม้ regenerate client แล้ว | **restart Next dev server** — runtime keep stale client ใน memory, regenerate file system อย่างเดียวไม่พอ |
+| Migration ใหม่ที่ local ไม่ตามขึ้น prod | runtime queries error หลัง deploy (เช่น POST /api/tasks → 500) | **ทุก migration ใหม่ต้องรัน `node scripts/migrate-turso.mjs`** กับ Turso prod แยก · ไม่ต้อง redeploy (schema sync อย่างเดียว) |
+| Alarm loop ตอนเน็ตตัด | Production alert เด้งรัวๆ จนเน็ตกลับ | ticker เห็น expired + fetch fail → state ไม่อัปเดต → loop · แก้ด้วย **idempotency key (`endsAt`)** ใน `triggerExpire` — alarm 1 ครั้ง/ลูก แม้ API retry หลายรอบ |
 
 > **Env ที่ prod ต้องมี (5 ตัว):** `AUTH_SECRET` · `AUTH_GOOGLE_ID` · `AUTH_GOOGLE_SECRET` · `DATABASE_URL` (libsql) · `TURSO_AUTH_TOKEN`
 > **บทเรียนหลัก:** local เขียว ≠ prod เขียว — env, build step, และ DB migration ของ prod เป็นคนละชุดที่ต้องจัดการแยก
@@ -432,4 +455,4 @@ Project Overview · QA Artifacts Summary · Skills Demonstrated · Lessons Learn
 
 ---
 
-*Next (จากสถานะจริง 2026-05-31): Product + Room + Login + Deploy + UI (Ember/Split) เสร็จและขึ้น prod แล้ว → เหลือ **Phase 2 QA** (Manual → E2E → Integration → Unit) ซึ่งเป็นพระเอกของ portfolio · งานเล็กค้าง: reset Google/Turso secrets, ขัดดีเทล UI เพิ่ม (เช่น toast ครอบคลุมขึ้น)*
+*Next (จากสถานะจริง 2026-06-06): Pomodachi live บน prod ครบทุกฟีเจอร์ที่วางแผน (Room, Login, Backlog scheduling, switch/skip, marimba alarm, Glass/Mirror UI) + แก้ bug จริงบน prod (offline alarm loop, dropdown clipping, Thai font fallback) → ก้าวต่อไปคือ **Phase 2 QA** (Manual → E2E → Integration → Unit) — พระเอกของ portfolio · งานเล็กค้าง: reset Google/Turso secrets, publish OAuth ออกจาก Testing mode (เมื่อพร้อม), Stretch B (TTL auto-cleanup ห้องร้าง)*
