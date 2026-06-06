@@ -300,6 +300,11 @@ export function PomodoroApp() {
 
   return (
     <div className="min-h-screen ember-bg text-foreground relative flex flex-col md:grid md:grid-cols-[3fr_2fr] md:h-screen">
+      {/* build version (เล็กมุมล่างซ้าย) — ยืนยันว่า client รัน bundle เวอร์ชันไหน */}
+      <span className="fixed bottom-1 left-1 z-[60] text-[9px] font-mono text-[var(--faint)] opacity-50 pointer-events-none">
+        {process.env.NEXT_PUBLIC_BUILD_ID}
+      </span>
+
       {/* Logo — ลอยมุมซ้ายบน กลืนกับพื้นหลัง */}
       <h1
         className="absolute top-0 left-0 h-14 flex items-center px-4 sm:px-6 z-30 text-lg font-semibold text-foreground whitespace-nowrap"
