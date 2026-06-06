@@ -418,7 +418,13 @@ export function PomodoroApp() {
       {/* Confirm switch / skip */}
       {pendingSwitch && (
         <>
-          <div className="fixed inset-0 z-[55] bg-black/30" onClick={() => setPendingSwitch(null)} />
+          {/* scrim — เบลอพื้นหลังทั้งหน้า → ข้อความ layer ล่างกลายเป็นฝ้า ไม่ทะลุมาแย่ง modal
+              (กุญแจของ glass UI ที่อ่านง่าย: frost สิ่งที่อยู่ข้างหลังก่อน) */}
+          <div
+            className="fixed inset-0 z-[55] bg-black/20"
+            style={{ backdropFilter: "blur(8px) saturate(115%)", WebkitBackdropFilter: "blur(8px) saturate(115%)" }}
+            onClick={() => setPendingSwitch(null)}
+          />
           <div
             className="paper-panel pm-pop fixed left-1/2 top-1/2 z-[60] -translate-x-1/2 -translate-y-1/2
               border border-border rounded-2xl p-5 w-[min(420px,90vw)]"
