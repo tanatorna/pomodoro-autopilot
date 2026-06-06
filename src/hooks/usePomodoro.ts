@@ -77,6 +77,7 @@ export function usePomodoro(
   // → ปลด guard แล้วลอง trigger อีก แต่ alarm key เท่าเดิม ⇒ ไม่ alarm ซ้ำ
   // เมื่อเน็ตกลับ + API สำเร็จ → state ใหม่ endsAt เปลี่ยน → key ต่าง → alarm ครั้งใหม่ทำได้
   const alarmedForEndsAtRef = useRef<number | null>(null);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   useEffect(() => { durationsRef.current = durations; }, [durations]);
   useEffect(() => { headersRef.current = roomHeaders; }, [roomHeaders]);
 
@@ -191,6 +192,52 @@ export function usePomodoro(
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [triggerExpire]);
+
+  // ─── Screen Wake Lock ─────────────────────
+  // กันจอดับระหว่าง timer เดิน → หน้าไม่ถูก suspend → ticker เดินต่อ → เสียง/noti ดังตรงเวลา
+  // (ทำงานเฉพาะตอนแอปเปิดอยู่ · ถ้า user กดล็อคเอง/สลับแอป OS ยังปล่อย lock — ไม่ใช่ push)
+  useEffect(() => {
+    const running =
+      timerState.state === "WORK" ||
+      timerState.state === "SHORT_BREAK" ||
+      timerState.state === "LONG_BREAK";
+
+    async function acquire() {
+      if (typeof navigator === "undefined" || !("wakeLock" in navigator)) return;
+      if (wakeLockRef.current) return;
+      try {
+        const sentinel = await navigator.wakeLock.request("screen");
+        wakeLockRef.current = sentinel;
+        // ถูกปล่อยอัตโนมัติ (เช่นจอ hide) → เคลียร์ ref ไว้ให้ re-acquire ได้
+        sentinel.addEventListener("release", () => {
+          if (wakeLockRef.current === sentinel) wakeLockRef.current = null;
+        });
+      } catch {
+        /* ไม่รองรับ / ถูกปฏิเสธ → เงียบ (fallback = แจ้งตอนกลับมาเหมือนเดิม) */
+      }
+    }
+
+    async function release() {
+      const sentinel = wakeLockRef.current;
+      wakeLockRef.current = null;
+      if (sentinel) {
+        try { await sentinel.release(); } catch { /* ignore */ }
+      }
+    }
+
+    if (running) {
+      void acquire();
+    } else {
+      void release();
+    }
+
+    // re-acquire เมื่อกลับมา visible (wake lock ถูกปล่อยอัตโนมัติตอน tab hidden)
+    function onVisible() {
+      if (document.visibilityState === "visible" && running) void acquire();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [timerState.state]);
 
   // ─── Actions ──────────────────────────────
 
