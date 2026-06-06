@@ -32,11 +32,14 @@ interface UsePomodoroReturn {
   wakeLockActive: boolean;
 }
 
+/** response อาจมี serverNow แนบมา (สำหรับ clock-offset) */
+type SessionResponse = TimerState & { serverNow?: number };
+
 async function callSessionAPI(
   body: Record<string, unknown>,
   headers: Record<string, string>,
   timeoutMs = 8000
-): Promise<TimerState> {
+): Promise<SessionResponse> {
   // timeout/abort — กัน request ค้างถาวร (เช่น connection ตายเงียบๆ ตอน resume จากล็อคจอมือถือ)
   // ถ้าไม่ abort, promise จะไม่ settle → expiringRef ติด true → timer แข็งค้าง
   const controller = new AbortController();
@@ -49,7 +52,7 @@ async function callSessionAPI(
       signal: controller.signal,
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`); // เช่น 402 (Vercel disabled), 500
-    return res.json() as Promise<TimerState>;
+    return res.json() as Promise<SessionResponse>;
   } finally {
     clearTimeout(timer);
   }
@@ -78,6 +81,23 @@ export function usePomodoro(
   const durationsRef = useRef(durations);
   const headersRef = useRef(roomHeaders);
   const expiringRef = useRef(false); // in-flight guard ระหว่างรอ API
+  // clock offset: ms ที่ต้องบวกเข้า Date.now() ของ client เพื่อให้ได้เวลา server
+  // กัน timer ค้าง: endsAt อิงนาฬิกา server ถ้า client เร็ว/ช้ากว่า จะ expire เหลื่อม → วน revert
+  const clockOffsetRef = useRef(0);
+  const nowServer = () => Date.now() + clockOffsetRef.current;
+  /** อัปเดต offset จาก serverNow ที่แนบมากับ response */
+  const syncClock = (serverNow?: number) => {
+    if (typeof serverNow === "number") clockOffsetRef.current = serverNow - Date.now();
+  };
+  /** apply response → sync clock + set state + remaining (ใช้เวลา server) */
+  const applyState = (next: SessionResponse) => {
+    syncClock(next.serverNow);
+    setTimerState(next);
+    timerStateRef.current = next;
+    setRemainingMs(
+      next.endsAt ? computeRemaining(next.endsAt, nowServer()) : next.remainingMs ?? 0
+    );
+  };
   // key = endsAt ของ "ลูก pomodoro" ที่เล่น alarm ไปแล้ว
   // กัน alarm รัวๆ ตอนเน็ตตัด: API fail → state ไม่อัปเดต → ticker ครั้งถัดมาเห็น state เดิม (expired)
   // → ปลด guard แล้วลอง trigger อีก แต่ alarm key เท่าเดิม ⇒ ไม่ alarm ซ้ำ
@@ -105,21 +125,26 @@ export function usePomodoro(
     }
 
     // OPTIMISTIC transition — คำนวณ state ถัดไปในเครื่องด้วย engine (pure) แล้วอัปเดตจอทันที
-    // ไม่รอ server → display ไม่ค้างแม้ expire request ช้า/ค้าง (สาเหตุของ "ค้างที่ 00:01")
-    // server จะ reconcile ทีหลัง (จัดการ task counting + เลื่อน task — logic ฝั่ง server)
-    const localNext = tick(state, Date.now(), durationsRef.current);
+    // ใช้ nowServer() (เวลา server) → ตัดสิน expiry ตรงกับ server ไม่เหลื่อม
+    const localNext = tick(state, nowServer(), durationsRef.current);
+    const advancedLocally = localNext.state !== state.state;
     if (localNext !== state) {
       setTimerState(localNext);
       timerStateRef.current = localNext;
-      setRemainingMs(localNext.endsAt ? computeRemaining(localNext.endsAt, Date.now()) : 0);
+      setRemainingMs(localNext.endsAt ? computeRemaining(localNext.endsAt, nowServer()) : 0);
     }
 
     // sync server (authoritative) แล้ว reconcile · retry ทุก tick ถ้า fail
     callSessionAPI({ action: "expire", durations: durationsRef.current }, headersRef.current)
       .then((next) => {
-        setTimerState(next);
-        timerStateRef.current = next;
-        setRemainingMs(next.endsAt ? computeRemaining(next.endsAt, Date.now()) : 0);
+        syncClock(next.serverNow);
+        // safety: ถ้าเราขยับ optimistic ไปแล้ว แต่ server ยังตอบ state เดิม (นาฬิกาเหลื่อม/latency)
+        // → อย่า revert กลับ (ไม่งั้นจะวนค้าง) · server จะตามทันใน sync ถัดไป
+        if (!(advancedLocally && next.state === state.state)) {
+          setTimerState(next);
+          timerStateRef.current = next;
+          setRemainingMs(next.endsAt ? computeRemaining(next.endsAt, nowServer()) : 0);
+        }
         setSyncError(null); // สำเร็จ → เคลียร์ error
       })
       .catch((err) => {
@@ -140,12 +165,13 @@ export function usePomodoro(
   useEffect(() => {
     if (!roomHeaders["X-Room-Id"]) return;
     fetch("/api/session", { headers: roomHeaders })
-      .then((r) => r.json() as Promise<TimerState>)
+      .then((r) => r.json() as Promise<SessionResponse>)
       .then((state) => {
+        syncClock(state.serverNow); // ตั้ง clock offset ตั้งแต่โหลด → expiry ตรงกับ server
         setTimerState(state);
         timerStateRef.current = state;
         if (state.endsAt) {
-          setRemainingMs(computeRemaining(state.endsAt, Date.now()));
+          setRemainingMs(computeRemaining(state.endsAt, nowServer()));
         } else if (state.remainingMs !== null) {
           setRemainingMs(state.remainingMs);
         }
@@ -157,11 +183,12 @@ export function usePomodoro(
   const refresh = useCallback(async () => {
     const headers = headersRef.current;
     if (!headers["X-Room-Id"]) return;
-    const next = (await (await fetch("/api/session", { headers })).json()) as TimerState;
+    const next = (await (await fetch("/api/session", { headers })).json()) as SessionResponse;
+    syncClock(next.serverNow);
     setTimerState(next);
     timerStateRef.current = next;
     setRemainingMs(
-      next.endsAt ? computeRemaining(next.endsAt, Date.now()) : next.remainingMs ?? 0
+      next.endsAt ? computeRemaining(next.endsAt, nowServer()) : next.remainingMs ?? 0
     );
   }, []);
 
@@ -181,7 +208,7 @@ export function usePomodoro(
       if (state.state === "IDLE" || state.state === "PAUSED") return;
       if (state.endsAt === null) return;
 
-      const nowMs = Date.now();
+      const nowMs = nowServer(); // ใช้เวลา server → expiry ตรงกัน
 
       if (isExpired(state.endsAt, nowMs)) {
         triggerExpire();
@@ -204,7 +231,7 @@ export function usePomodoro(
       if (state.state === "IDLE" || state.state === "PAUSED") return;
       if (state.endsAt === null) return;
 
-      const nowMs = Date.now();
+      const nowMs = nowServer();
       if (isExpired(state.endsAt, nowMs)) {
         triggerExpire();
       } else {
@@ -278,23 +305,18 @@ export function usePomodoro(
       taskId,
       durations: durationsRef.current,
     }, headersRef.current);
-    setTimerState(next);
-    timerStateRef.current = next;
-    setRemainingMs(next.endsAt ? computeRemaining(next.endsAt, Date.now()) : 0);
+    applyState(next);
   }, []);
 
   const handlePause = useCallback(async () => {
     const next = await callSessionAPI({ action: "pause" }, headersRef.current);
-    setTimerState(next);
-    timerStateRef.current = next;
+    applyState(next);
   }, []);
 
   const handleResume = useCallback(async () => {
     primeAudio(); // ปลดล็อกเสียงระหว่าง gesture นี้ (มือถือ)
     const next = await callSessionAPI({ action: "resume" }, headersRef.current);
-    setTimerState(next);
-    timerStateRef.current = next;
-    setRemainingMs(next.endsAt ? computeRemaining(next.endsAt, Date.now()) : 0);
+    applyState(next);
   }, []);
 
   const handleRestart = useCallback(async () => {
@@ -303,9 +325,7 @@ export function usePomodoro(
       action: "restart",
       durations: durationsRef.current,
     }, headersRef.current);
-    setTimerState(next);
-    timerStateRef.current = next;
-    setRemainingMs(next.endsAt ? computeRemaining(next.endsAt, Date.now()) : 0);
+    applyState(next);
   }, []);
 
   /** เปลี่ยนไป task อื่นกลางคัน — void ลูกปัจจุบัน + start WORK ใหม่ */
@@ -315,9 +335,7 @@ export function usePomodoro(
       { action: "switch", taskId, durations: durationsRef.current },
       headersRef.current
     );
-    setTimerState(next);
-    timerStateRef.current = next;
-    setRemainingMs(next.endsAt ? computeRemaining(next.endsAt, Date.now()) : 0);
+    applyState(next);
   }, []);
 
   /** ข้าม task ปัจจุบัน → ไป task ถัดไปอัตโนมัติ */
@@ -327,9 +345,7 @@ export function usePomodoro(
       { action: "skip", durations: durationsRef.current },
       headersRef.current
     );
-    setTimerState(next);
-    timerStateRef.current = next;
-    setRemainingMs(next.endsAt ? computeRemaining(next.endsAt, Date.now()) : 0);
+    applyState(next);
   }, []);
 
   return {

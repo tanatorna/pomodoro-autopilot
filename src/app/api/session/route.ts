@@ -43,7 +43,8 @@ async function getOrCreateSession(roomId: string) {
 export async function GET(request: Request) {
   const roomId = getRoomId(request);
   const session = await getOrCreateSession(roomId);
-  return Response.json(dbToTimerState(session));
+  // ส่ง serverNow ด้วย → client คำนวณ clock offset (กัน timer ค้างจากนาฬิกาเหลื่อม)
+  return Response.json({ ...dbToTimerState(session), serverNow: Date.now() });
 }
 
 type SessionAction =
@@ -175,5 +176,5 @@ export async function POST(request: Request) {
     data: timerStateToDb(next),
   });
 
-  return Response.json(dbToTimerState(updated));
+  return Response.json({ ...dbToTimerState(updated), serverNow: Date.now() });
 }
