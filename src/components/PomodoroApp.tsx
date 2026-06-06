@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Task } from "@/generated/prisma/client";
 import { usePomodoro } from "@/hooks/usePomodoro";
 import { useSettings } from "@/hooks/useSettings";
+import { formatTime } from "@/engine/timeMath";
 import { useRoom } from "@/hooks/useRoom";
 import { useSession } from "next-auth/react";
 import { AccountButton } from "./AccountButton";
@@ -430,7 +431,7 @@ export function PomodoroApp() {
             </p>
             <p className="text-sm text-[var(--ink-soft)] mb-4">
               ลูก Pomodoro ของ <strong>{currentTask?.title ?? "task ปัจจุบัน"}</strong> ที่ทำค้างอยู่
-              <strong> จะไม่ถูกนับ</strong> (เริ่มลูกใหม่ที่ 25:00)
+              <strong> จะไม่ถูกนับ</strong> (เริ่มลูกใหม่ที่ {formatTime(durations.WORK)})
             </p>
             <div className="flex justify-end gap-2">
               <button
