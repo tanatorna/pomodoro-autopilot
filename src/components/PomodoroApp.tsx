@@ -38,7 +38,7 @@ export function PomodoroApp() {
   const {
     timerState, display, remainingMs, loading,
     handleStart, handlePause, handleResume, handleRestart,
-    handleSwitchTask, handleSkip, refresh, syncError,
+    handleSwitchTask, handleSkip, refresh, syncError, wakeLockActive,
   } = usePomodoro(durations, roomHeaders);
 
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -333,6 +333,24 @@ export function PomodoroApp() {
             onRestart={handleRestart}
             onSkip={() => setPendingSwitch({ kind: "skip" })}
           />
+
+          {/* สถานะ Wake Lock — บอก user (และ diagnose) ว่าจอจะดับระหว่างโฟกัสไหม
+              บางเครื่อง (เช่น Samsung battery management) ปฏิเสธ wake lock → เตือนให้รู้ */}
+          {(timerState.state === "WORK" ||
+            timerState.state === "SHORT_BREAK" ||
+            timerState.state === "LONG_BREAK") && (
+            <div className="mt-5 flex justify-center">
+              {wakeLockActive ? (
+                <span className="text-xs text-[var(--ink-soft)] bg-card/70 rounded-full px-3 py-1 border border-border">
+                  🔆 จอจะไม่ดับระหว่างโฟกัส
+                </span>
+              ) : (
+                <span className="text-xs text-[var(--accent-strong,#9a4a2c)] bg-card/80 rounded-full px-3 py-1 border border-[var(--border-strong,#d8a07a)] text-center max-w-[260px]">
+                  ⚠️ เบราว์เซอร์ไม่ได้ล็อกจอให้ — ถ้าจอดับ เสียงเตือนอาจไม่ดัง (เปิดจอค้างไว้)
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </main>
 

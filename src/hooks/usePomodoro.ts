@@ -28,6 +28,7 @@ interface UsePomodoroReturn {
   handleSkip: () => Promise<void>;
   refresh: () => Promise<void>;
   syncError: string | null;
+  wakeLockActive: boolean;
 }
 
 async function callSessionAPI(
@@ -70,6 +71,7 @@ export function usePomodoro(
   const [loading, setLoading] = useState(true);
   const [remainingMs, setRemainingMs] = useState(0);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [wakeLockActive, setWakeLockActive] = useState(false);
 
   const timerStateRef = useRef<TimerState>(INITIAL_STATE);
   const durationsRef = useRef(durations);
@@ -213,23 +215,30 @@ export function usePomodoro(
       timerState.state === "LONG_BREAK";
 
     async function acquire() {
-      if (typeof navigator === "undefined" || !("wakeLock" in navigator)) return;
+      if (typeof navigator === "undefined" || !("wakeLock" in navigator)) {
+        setWakeLockActive(false);
+        return;
+      }
       if (wakeLockRef.current) return;
       try {
         const sentinel = await navigator.wakeLock.request("screen");
         wakeLockRef.current = sentinel;
+        setWakeLockActive(true);
         // ถูกปล่อยอัตโนมัติ (เช่นจอ hide) → เคลียร์ ref ไว้ให้ re-acquire ได้
         sentinel.addEventListener("release", () => {
           if (wakeLockRef.current === sentinel) wakeLockRef.current = null;
+          setWakeLockActive(false);
         });
       } catch {
-        /* ไม่รองรับ / ถูกปฏิเสธ → เงียบ (fallback = แจ้งตอนกลับมาเหมือนเดิม) */
+        // ไม่รองรับ / ถูกปฏิเสธ (เช่น Samsung battery management) → แสดงสถานะให้ user รู้
+        setWakeLockActive(false);
       }
     }
 
     async function release() {
       const sentinel = wakeLockRef.current;
       wakeLockRef.current = null;
+      setWakeLockActive(false);
       if (sentinel) {
         try { await sentinel.release(); } catch { /* ignore */ }
       }
@@ -325,5 +334,6 @@ export function usePomodoro(
     handleSkip,
     refresh,
     syncError,
+    wakeLockActive,
   };
 }
