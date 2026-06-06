@@ -1,18 +1,58 @@
 // ─────────────────────────────────────────────
 // Sound — Web Audio API (ไม่ต้องมีไฟล์เสียง)
 // Pattern: marimba do-mi-sol (C5-E5-G5) ทำซ้ำ 2 รอบ, warm + ไม่น่าตกใจ
-//   • triangle wave + soft attack/release → เนื้อไม้
-//   • Compressor → ดังโดยไม่ clip
-//   • pause ~0.15s ระหว่างรอบให้รู้ว่าเป็น 2 รอบ
-//   • total ~1.66s
+//
+// มือถือ (iOS/Android) บล็อก AudioContext ที่สร้าง/เล่นนอก user gesture →
+// ถ้าสร้าง context ใหม่ตอน timer หมด (ไม่ใช่ gesture) เสียงจะ "เงียบ"
+// แก้: ใช้ context เดียว (singleton) ปลดล็อคตอนกดเริ่ม (primeAudio) แล้ว reuse +
+// resume() ก่อนเล่นทุกครั้ง → alarm ดังจริงแม้ trigger จาก timer/visibility
 // ─────────────────────────────────────────────
 
+let sharedCtx: AudioContext | null = null;
+
+function getCtx(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!Ctor) return null;
+  if (!sharedCtx || sharedCtx.state === "closed") {
+    sharedCtx = new Ctor();
+  }
+  return sharedCtx;
+}
+
+/**
+ * ปลดล็อคเสียง — ต้องเรียก "ระหว่าง user gesture" (เช่นตอนกดปุ่มเริ่ม/resume)
+ * สร้าง context + resume + เล่น blip เงียบๆ เพื่อให้ iOS ปลดล็อก
+ * หลังจากนี้ playAlarm จะส่งเสียงได้แม้ trigger จาก timer ที่ไม่ใช่ gesture
+ */
+export function primeAudio() {
+  const ctx = getCtx();
+  if (!ctx) return;
+  void ctx.resume();
+  try {
+    // silent blip — ช่วยปลดล็อก audio pipeline บน iOS
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    gain.gain.value = 0.0001;
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.02);
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * เล่นเสียง alarm — marimba do-mi-sol × 2 รอบ
+ * reuse shared context + resume() เผื่อถูก suspend ตอน background → ดังบนมือถือ
+ */
 export function playAlarm(type: "work" | "break" = "work") {
   void type; // ใช้ pattern เดียวกันทั้ง work/break
-  if (typeof window === "undefined") return;
+  const ctx = getCtx();
+  if (!ctx) return;
 
   try {
-    const ctx = new AudioContext();
+    void ctx.resume(); // เผื่อ context ถูก suspend (background/มือถือ)
 
     // compressor + master gain → ดันให้ดังโดยไม่ clip
     const comp = ctx.createDynamicsCompressor();
@@ -37,13 +77,9 @@ export function playAlarm(type: "work" | "break" = "work") {
         playNote(ctx, comp, f, base + i * noteGap);
       });
     }
-
-    // ปิด context หลังเสียงหมด
-    setTimeout(() => {
-      if (ctx.state !== "closed") void ctx.close();
-    }, 2200);
+    // ไม่ปิด ctx — reuse ครั้งถัดไป (ปิดแล้วต้องปลดล็อกใหม่ด้วย gesture บนมือถือ)
   } catch {
-    // Safari / browser ที่ block AudioContext ก่อน user gesture → silent fail
+    // browser ที่ block AudioContext → silent fail
   }
 }
 

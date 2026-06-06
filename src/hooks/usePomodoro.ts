@@ -13,7 +13,7 @@ import {
   isExpired,
 } from "@/engine";
 import type { DurationConfig } from "@/engine/transitions";
-import { playAlarm } from "@/lib/sound";
+import { playAlarm, primeAudio } from "@/lib/sound";
 
 interface UsePomodoroReturn {
   timerState: TimerState;
@@ -242,6 +242,7 @@ export function usePomodoro(
   // ─── Actions ──────────────────────────────
 
   const handleStart = useCallback(async (taskId?: number) => {
+    primeAudio(); // ปลดล็อกเสียงระหว่าง gesture นี้ → alarm ดังตอน timer หมด (มือถือ)
     const next = await callSessionAPI({
       action: "start",
       taskId,
@@ -259,6 +260,7 @@ export function usePomodoro(
   }, []);
 
   const handleResume = useCallback(async () => {
+    primeAudio(); // ปลดล็อกเสียงระหว่าง gesture นี้ (มือถือ)
     const next = await callSessionAPI({ action: "resume" }, headersRef.current);
     setTimerState(next);
     timerStateRef.current = next;
@@ -266,6 +268,7 @@ export function usePomodoro(
   }, []);
 
   const handleRestart = useCallback(async () => {
+    primeAudio();
     const next = await callSessionAPI({
       action: "restart",
       durations: durationsRef.current,
@@ -277,6 +280,7 @@ export function usePomodoro(
 
   /** เปลี่ยนไป task อื่นกลางคัน — void ลูกปัจจุบัน + start WORK ใหม่ */
   const handleSwitchTask = useCallback(async (taskId: number) => {
+    primeAudio();
     const next = await callSessionAPI(
       { action: "switch", taskId, durations: durationsRef.current },
       headersRef.current
@@ -288,6 +292,7 @@ export function usePomodoro(
 
   /** ข้าม task ปัจจุบัน → ไป task ถัดไปอัตโนมัติ */
   const handleSkip = useCallback(async () => {
+    primeAudio();
     const next = await callSessionAPI(
       { action: "skip", durations: durationsRef.current },
       headersRef.current
