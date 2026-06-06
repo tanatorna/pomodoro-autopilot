@@ -38,7 +38,7 @@ export function PomodoroApp() {
   const {
     timerState, display, remainingMs, loading,
     handleStart, handlePause, handleResume, handleRestart,
-    handleSwitchTask, handleSkip, refresh,
+    handleSwitchTask, handleSkip, refresh, syncError,
   } = usePomodoro(durations, roomHeaders);
 
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -60,6 +60,11 @@ export function PomodoroApp() {
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(null), 3200);
   }, []);
+
+  // แสดง toast เมื่อ sync กับ server ล้มเหลว (เดิมเงียบ → "ค้าง" โดยไม่รู้สาเหตุ)
+  useEffect(() => {
+    if (syncError) showToast(`⚠️ ${syncError}`);
+  }, [syncError, showToast]);
 
   // ─── Loaders ──────────────────────────────
   const loadTasks = useCallback(async () => {

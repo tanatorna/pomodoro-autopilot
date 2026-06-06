@@ -27,6 +27,7 @@ interface UsePomodoroReturn {
   handleSwitchTask: (taskId: number) => Promise<void>;
   handleSkip: () => Promise<void>;
   refresh: () => Promise<void>;
+  syncError: string | null;
 }
 
 async function callSessionAPI(
@@ -45,6 +46,7 @@ async function callSessionAPI(
       body: JSON.stringify(body),
       signal: controller.signal,
     });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`); // เช่น 402 (Vercel disabled), 500
     return res.json() as Promise<TimerState>;
   } finally {
     clearTimeout(timer);
@@ -67,6 +69,7 @@ export function usePomodoro(
   const [timerState, setTimerState] = useState<TimerState>(INITIAL_STATE);
   const [loading, setLoading] = useState(true);
   const [remainingMs, setRemainingMs] = useState(0);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const timerStateRef = useRef<TimerState>(INITIAL_STATE);
   const durationsRef = useRef(durations);
@@ -104,9 +107,16 @@ export function usePomodoro(
         setTimerState(next);
         timerStateRef.current = next;
         setRemainingMs(next.endsAt ? computeRemaining(next.endsAt, Date.now()) : 0);
+        setSyncError(null); // สำเร็จ → เคลียร์ error
       })
-      .catch(() => {
-        /* network failed — จะ retry ใน tick ถัดไป, alarm key กัน alarm ซ้ำ */
+      .catch((err) => {
+        // ล้มเหลว → แจ้ง user (เดิมเงียบ ทำให้ "ค้าง" โดยไม่รู้สาเหตุ) · จะ retry ใน tick ถัดไป
+        const status = String((err as Error)?.message ?? "");
+        setSyncError(
+          status.includes("402")
+            ? "เชื่อมต่อ server ไม่ได้ (402) — เช็คว่าใช้โดเมนถูก/Vercel ยัง active"
+            : "ซิงค์ไม่สำเร็จ — เน็ตมีปัญหา กำลังลองใหม่…"
+        );
       })
       .finally(() => { expiringRef.current = false; });
   }, []);
@@ -314,5 +324,6 @@ export function usePomodoro(
     handleSwitchTask,
     handleSkip,
     refresh,
+    syncError,
   };
 }
