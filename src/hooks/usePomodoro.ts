@@ -61,28 +61,41 @@ export function usePomodoro(
   const timerStateRef = useRef<TimerState>(INITIAL_STATE);
   const durationsRef = useRef(durations);
   const headersRef = useRef(roomHeaders);
-  const expiringRef = useRef(false); // กันยิง expire/แจ้งเตือนซ้ำระหว่างรอ API
+  const expiringRef = useRef(false); // in-flight guard ระหว่างรอ API
+  // key = endsAt ของ "ลูก pomodoro" ที่เล่น alarm ไปแล้ว
+  // กัน alarm รัวๆ ตอนเน็ตตัด: API fail → state ไม่อัปเดต → ticker ครั้งถัดมาเห็น state เดิม (expired)
+  // → ปลด guard แล้วลอง trigger อีก แต่ alarm key เท่าเดิม ⇒ ไม่ alarm ซ้ำ
+  // เมื่อเน็ตกลับ + API สำเร็จ → state ใหม่ endsAt เปลี่ยน → key ต่าง → alarm ครั้งใหม่ทำได้
+  const alarmedForEndsAtRef = useRef<number | null>(null);
   useEffect(() => { durationsRef.current = durations; }, [durations]);
   useEffect(() => { headersRef.current = roomHeaders; }, [roomHeaders]);
 
   // ─── หมดเวลา (ใช้ร่วมกันทั้ง ticker + visibility) ─────────
-  // มี in-flight guard: ถ้ามี expire ค้างอยู่ จะไม่ยิงซ้ำ + ไม่แจ้งเตือนซ้ำ
-  // (สำคัญตอน API ช้า/cold start — ticker เดินทุก 1 วิ แต่ state เก่ายัง expired อยู่)
   const triggerExpire = useCallback(() => {
     if (expiringRef.current) return;
     expiringRef.current = true;
 
     const state = timerStateRef.current;
-    playAlarm(state.state === "WORK" ? "work" : "break");
-    const label = state.state === "WORK" ? "หมดเวลาทำงาน! 🍅" : "หมดเวลา Break! 💪";
-    const body = state.state === "WORK" ? "เริ่ม Break ได้เลย" : "พร้อมทำงานรอบใหม่";
-    notify(label, body);
+    const endsAtKey = state.endsAt;
 
+    // alarm/notify ครั้งเดียวต่อ expire event (endsAt) — กัน loop ตอน API fail
+    if (endsAtKey !== null && alarmedForEndsAtRef.current !== endsAtKey) {
+      alarmedForEndsAtRef.current = endsAtKey;
+      playAlarm(state.state === "WORK" ? "work" : "break");
+      const label = state.state === "WORK" ? "หมดเวลาทำงาน! 🍅" : "หมดเวลา Break! 💪";
+      const body = state.state === "WORK" ? "เริ่ม Break ได้เลย" : "พร้อมทำงานรอบใหม่";
+      notify(label, body);
+    }
+
+    // API call ยังพยายามทุก tick ตอน expired (ให้ retry ตอนเน็ตกลับ) แต่จะไม่ alarm ซ้ำ
     callSessionAPI({ action: "expire", durations: durationsRef.current }, headersRef.current)
       .then((next) => {
         setTimerState(next);
         timerStateRef.current = next;
         setRemainingMs(next.endsAt ? computeRemaining(next.endsAt, Date.now()) : 0);
+      })
+      .catch(() => {
+        /* network failed — จะ retry ใน tick ถัดไป, alarm key กัน alarm ซ้ำ */
       })
       .finally(() => { expiringRef.current = false; });
   }, []);
