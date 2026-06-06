@@ -37,8 +37,8 @@ export function useRoom() {
       // มี room ใน URL → ใช้เลย + บันทึกลง localStorage
       localStorage.setItem(STORAGE_KEY, urlRoom);
       setRoomIdState(urlRoom);
-      // ลบ ?room= ออกจาก URL (clean URL) · แต่คง ?debug=1 ไว้ (สำหรับ debug overlay)
-      const newUrl = window.location.pathname + (urlParams.get("debug") === "1" ? "?debug=1" : "");
+      // ลบ ?room= ออกจาก URL (clean URL)
+      const newUrl = window.location.pathname;
       window.history.replaceState({}, "", newUrl);
       return;
     }

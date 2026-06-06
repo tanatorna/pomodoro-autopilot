@@ -38,13 +38,8 @@ export function PomodoroApp() {
   const {
     timerState, display, remainingMs, loading,
     handleStart, handlePause, handleResume, handleRestart,
-    handleSwitchTask, handleSkip, refresh, syncError, wakeLockActive, debug,
+    handleSwitchTask, handleSkip, refresh, syncError, wakeLockActive,
   } = usePomodoro(durations, roomHeaders);
-
-  // debug overlay เปิดด้วย ?debug=1 (สำหรับ diagnose บนเครื่องจริง)
-  const showDebug =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("debug") === "1";
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [backlog, setBacklog] = useState<Task[]>([]);
@@ -305,23 +300,6 @@ export function PomodoroApp() {
 
   return (
     <div className="min-h-screen ember-bg text-foreground relative flex flex-col md:grid md:grid-cols-[3fr_2fr] md:h-screen">
-      {/* DEBUG overlay (?debug=1) — โชว์สถานะภายในเพื่อ diagnose บนเครื่องจริง */}
-      {showDebug && (
-        <div
-          className="fixed top-1 left-1 z-[999] font-mono text-[10px] leading-tight text-lime-300 bg-black/85 rounded p-2 max-w-[60vw] pointer-events-none whitespace-pre"
-        >
-          {`tick:${debug.tick}  state:${debug.state}
-remain:${debug.remainingMs}ms (${Math.ceil(debug.remainingMs/1000)}s)
-endsAt:${debug.endsAt ?? "null"}
-nowSrv:${debug.nowServer}
-offset:${debug.offsetMs}ms
-expireTry:${debug.expireAttempts} pass:${debug.expirePassed}
-expiring:${debug.expiring}
-lastExp:${debug.lastExpire}
-toErr:${syncError ?? "—"}`}
-        </div>
-      )}
-
       {/* Logo — ลอยมุมซ้ายบน กลืนกับพื้นหลัง */}
       <h1
         className="absolute top-0 left-0 h-14 flex items-center px-4 sm:px-6 z-30 text-lg font-semibold text-foreground whitespace-nowrap"

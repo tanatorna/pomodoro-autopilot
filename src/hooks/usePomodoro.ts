@@ -30,21 +30,6 @@ interface UsePomodoroReturn {
   refresh: () => Promise<void>;
   syncError: string | null;
   wakeLockActive: boolean;
-  debug: DebugInfo;
-}
-
-/** ข้อมูล diagnostic — โชว์ผ่าน ?debug=1 เพื่อ debug บนเครื่องจริง */
-export interface DebugInfo {
-  tick: number;          // ticker ยิงกี่ครั้ง (ถ้าไม่เพิ่ม = ticker ตาย)
-  state: string;
-  remainingMs: number;
-  endsAt: number | null;
-  nowServer: number;
-  offsetMs: number;      // clock offset
-  expireAttempts: number; // triggerExpire ถูกเรียกกี่ครั้ง
-  expirePassed: number;   // ผ่าน guard กี่ครั้ง (ยิง API จริง)
-  expiring: boolean;      // expiringRef ค้างไหม
-  lastExpire: string;     // ผล expire ล่าสุด
 }
 
 /** response อาจมี serverNow แนบมา (สำหรับ clock-offset) */
@@ -92,16 +77,6 @@ export function usePomodoro(
   const [syncError, setSyncError] = useState<string | null>(null);
   const [wakeLockActive, setWakeLockActive] = useState(false);
 
-  // ── debug counters (สำหรับ ?debug=1) ──
-  const tickCountRef = useRef(0);
-  const expireAttemptRef = useRef(0);
-  const expirePassRef = useRef(0);
-  const lastExpireRef = useRef("—");
-  const [debug, setDebug] = useState<DebugInfo>({
-    tick: 0, state: "IDLE", remainingMs: 0, endsAt: null, nowServer: 0,
-    offsetMs: 0, expireAttempts: 0, expirePassed: 0, expiring: false, lastExpire: "—",
-  });
-
   const timerStateRef = useRef<TimerState>(INITIAL_STATE);
   const durationsRef = useRef(durations);
   const headersRef = useRef(roomHeaders);
@@ -134,11 +109,8 @@ export function usePomodoro(
 
   // ─── หมดเวลา (ใช้ร่วมกันทั้ง ticker + visibility) ─────────
   const triggerExpire = useCallback(() => {
-    expireAttemptRef.current++;
     if (expiringRef.current) return;
     expiringRef.current = true;
-    expirePassRef.current++;
-    lastExpireRef.current = "pending…";
 
     const state = timerStateRef.current;
     const endsAtKey = state.endsAt;
@@ -174,12 +146,10 @@ export function usePomodoro(
           setRemainingMs(next.endsAt ? computeRemaining(next.endsAt, nowServer()) : 0);
         }
         setSyncError(null); // สำเร็จ → เคลียร์ error
-        lastExpireRef.current = `ok → ${next.state}`;
       })
       .catch((err) => {
         // ล้มเหลว → แจ้ง user (เดิมเงียบ ทำให้ "ค้าง" โดยไม่รู้สาเหตุ) · จะ retry ใน tick ถัดไป
         const status = String((err as Error)?.message ?? "");
-        lastExpireRef.current = `ERR ${status}`;
         setSyncError(
           status.includes("402")
             ? "เชื่อมต่อ server ไม่ได้ (402) — เช็คว่าใช้โดเมนถูก/Vercel ยัง active"
@@ -234,26 +204,11 @@ export function usePomodoro(
   // ─── Ticker ───────────────────────────────
   useEffect(() => {
     const interval = setInterval(() => {
-      tickCountRef.current++; // นับทุก tick (debug: ถ้าไม่เพิ่ม = ticker ตาย)
       const state = timerStateRef.current;
-      const nowMs = nowServer(); // ใช้เวลา server → expiry ตรงกัน
-
-      // publish debug snapshot ทุกวินาที
-      setDebug({
-        tick: tickCountRef.current,
-        state: state.state,
-        remainingMs: state.endsAt ? computeRemaining(state.endsAt, nowMs) : (state.remainingMs ?? 0),
-        endsAt: state.endsAt,
-        nowServer: nowMs,
-        offsetMs: clockOffsetRef.current,
-        expireAttempts: expireAttemptRef.current,
-        expirePassed: expirePassRef.current,
-        expiring: expiringRef.current,
-        lastExpire: lastExpireRef.current,
-      });
-
       if (state.state === "IDLE" || state.state === "PAUSED") return;
       if (state.endsAt === null) return;
+
+      const nowMs = nowServer(); // ใช้เวลา server → expiry ตรงกัน
 
       if (isExpired(state.endsAt, nowMs)) {
         triggerExpire();
@@ -407,6 +362,5 @@ export function usePomodoro(
     refresh,
     syncError,
     wakeLockActive,
-    debug,
   };
 }
