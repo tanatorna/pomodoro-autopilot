@@ -84,7 +84,12 @@ export async function POST(request: Request) {
       const wasBreak =
         current.state === "SHORT_BREAK" || current.state === "LONG_BREAK";
       const finishedTaskId = current.currentTaskId;
-      next = tick(current, nowMs, body.durations);
+      // client เรียก expire = ฝั่ง client เห็นว่าหมดเวลาแล้ว · ถ้านาฬิกา server ช้ากว่านิด
+      // (clock skew) tick ปกติจะคืน state เดิม → client reconcile ย้อนกลับ → "ค้าง"
+      // แก้: clamp เวลาเป็นอย่างน้อย endsAt → server ขยับเสมอเมื่อ client บอกหมด (ทนทานทุกเวอร์ชัน client)
+      const effectiveNow =
+        current.endsAt != null ? Math.max(nowMs, current.endsAt) : nowMs;
+      next = tick(current, effectiveNow, body.durations);
 
       // ถ้า WORK เพิ่งจบจริง (เปลี่ยน state ไป BREAK) → นับ pomodoro ของ task + ปิด slot
       if (wasWork && next.state !== "WORK" && finishedTaskId !== null) {
