@@ -117,7 +117,7 @@ export function BacklogView({ tasks, onAdd, onMoveToActive, onScheduleTask }: Ba
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 h-full">
       <TaskForm
         placeholder="เก็บงานอนาคตเข้า backlog..."
         submitLabel="เก็บ"
@@ -127,7 +127,7 @@ export function BacklogView({ tasks, onAdd, onMoveToActive, onScheduleTask }: Ba
       <div className="border-t border-border" />
 
       {tasks.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
+        <div className="flex-1 flex flex-col items-center justify-center gap-2 py-10 text-center">
           <span className="text-3xl opacity-60">📥</span>
           <p className="text-[var(--ink-soft)] text-sm max-w-[240px]">
             Backlog ว่าง — งานที่ค้างตอนจบวันจะมาอยู่ที่นี่
