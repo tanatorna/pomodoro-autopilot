@@ -109,15 +109,28 @@ export async function POST(request: Request) {
         const task = await prisma.task.findFirst({
           where: { id: finishedTaskId, roomId },
         });
+        let taskBecameDone = false;
         if (task) {
           const nextCompleted = task.completedPomodoros + 1;
+          taskBecameDone = nextCompleted >= task.estimatedPomodoros;
           await prisma.task.update({
             where: { id: task.id },
             data: {
               completedPomodoros: nextCompleted,
-              status: nextCompleted >= task.estimatedPomodoros ? "done" : task.status,
+              status: taskBecameDone ? "done" : task.status,
             },
           });
+        }
+
+        // ถ้า task นี้เพิ่ง done และไม่มี task เหลือในคิว → ไป IDLE เลย (อย่าเข้า break ลอยๆ
+        // บน task ที่ขีดฆ่าแล้ว — ไม่งั้น timer ยัง "กำลังทำ" task ที่เสร็จ + กดเริ่มต่อได้)
+        if (taskBecameDone) {
+          const remaining = await prisma.task.count({
+            where: { roomId, status: { in: ["pending", "in-progress"] } },
+          });
+          if (remaining === 0) {
+            next = { ...INITIAL_STATE, completedPomodoros: next.completedPomodoros };
+          }
         }
       }
 

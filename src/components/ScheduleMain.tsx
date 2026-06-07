@@ -222,7 +222,7 @@ export function ScheduleMain({
                         📥
                       </button>
                     )}
-                    {!isActive && (
+                    {(!isActive || isDone) && (
                       <button
                         onClick={() => onDelete(task.id)}
                         className="text-[var(--faint)] hover:text-[var(--danger)] text-xs w-6 h-6 flex items-center justify-center rounded hover:bg-secondary"
