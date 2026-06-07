@@ -42,6 +42,9 @@ export function start(
     endsAt: nowMs + d.WORK,
     remainingMs: null,
     origin: null,
+    // เริ่ม session ใหม่ → รีเซ็ตตัวนับ cadence (long break นับใหม่ต่อ session)
+    // ไม่งั้นตัวนับสะสมเดิมทำให้ลูกแรกอาจเด้ง long break ทันที (cadence เลื่อน)
+    completedPomodoros: 0,
     currentTaskId: taskId,
   };
 }

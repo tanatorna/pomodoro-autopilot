@@ -411,7 +411,6 @@ export function PomodoroApp() {
               <ScheduleMain
                 tasks={tasks}
                 currentTaskId={timerState.currentTaskId}
-                completedPomodoros={timerState.completedPomodoros}
                 pendingCount={pendingCount}
                 onAdd={handleAddTask}
                 onSelect={handleSelectAndStart}

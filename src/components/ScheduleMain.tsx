@@ -6,7 +6,6 @@ import type { Task } from "@/generated/prisma/client";
 interface ScheduleMainProps {
   tasks: Task[];
   currentTaskId: number | null;
-  completedPomodoros: number;
   pendingCount: number;
   onAdd: (title: string, estimatedPomodoros: number) => Promise<void>;
   onSelect: (taskId: number) => Promise<void>;
@@ -25,7 +24,6 @@ import { TaskForm } from "./TaskForm";
 export function ScheduleMain({
   tasks,
   currentTaskId,
-  completedPomodoros,
   pendingCount,
   onAdd,
   onSelect,
@@ -44,6 +42,10 @@ export function ScheduleMain({
     if (ad !== bd) return ad - bd;
     return b.priority !== a.priority ? b.priority - a.priority : a.id - b.id;
   });
+
+  // ยอด "สรุปวันนี้" = ผลรวม pomodoro ที่ task ทำเสร็จ (สะสมตลอดวัน · ไม่ใช่ตัวนับ cadence ของ session
+  // ที่รีเซ็ตเมื่อเริ่มใหม่) → ยอดวันไม่หายเมื่อ session counter รีเซ็ต
+  const totalDonePomodoros = tasks.reduce((sum, t) => sum + t.completedPomodoros, 0);
 
   // ─── inline edit state (title + pomodoros) ───
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -240,12 +242,12 @@ export function ScheduleMain({
       )}
 
       {/* Day summary */}
-      {(sorted.length > 0 || completedPomodoros > 0) && (
+      {(sorted.length > 0 || totalDonePomodoros > 0) && (
         <div className="border border-border rounded-2xl p-3 bg-card flex flex-col gap-3 shrink-0">
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">🌙 สรุปวันนี้</span>
             <div className="flex gap-3 text-xs">
-              <span className="text-primary font-semibold">{completedPomodoros} 🍅</span>
+              <span className="text-primary font-semibold">{totalDonePomodoros} 🍅</span>
               <span className="text-muted-foreground">{pendingCount} ค้าง</span>
             </div>
           </div>
@@ -260,7 +262,7 @@ export function ScheduleMain({
             </button>
           )}
 
-          {pendingCount === 0 && completedPomodoros > 0 && (
+          {pendingCount === 0 && totalDonePomodoros > 0 && (
             <p className="text-xs text-center" style={{ color: "var(--success)" }}>
               ✅ เคลียร์ทุก task วันนี้แล้ว!
             </p>
