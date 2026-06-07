@@ -117,13 +117,19 @@ export function PomodoroApp() {
       timerState.state === "SHORT_BREAK" ||
       timerState.state === "LONG_BREAK";
 
-    // ถ้า running อยู่และเลือก task อื่น → ขอ confirm switch (ลูกปัจจุบันจะไม่นับ)
-    if (running && taskId !== timerState.currentTaskId) {
-      const target = tasks.find((t) => t.id === taskId);
-      setPendingSwitch({ kind: "switch", toId: taskId, toTitle: target?.title ?? "task" });
+    if (running) {
+      // มี task กำลังโฟกัสอยู่จริง + เลือกตัวอื่น → confirm switch (ลูกปัจจุบันจะไม่นับ)
+      if (timerState.currentTaskId != null && taskId !== timerState.currentTaskId) {
+        const target = tasks.find((t) => t.id === taskId);
+        setPendingSwitch({ kind: "switch", toId: taskId, toTitle: target?.title ?? "task" });
+        return;
+      }
+      // running แต่ไม่มี task ผูกอยู่ (เช่น ค้าง PAUSED/break ไม่มี task) → เริ่ม task นี้เลย
+      // ใช้ switch (เริ่ม WORK ใหม่ได้จากทุก state ไม่เหมือน start ที่ต้อง IDLE) ไม่ต้อง confirm
+      await handleSwitchTask(taskId);
       return;
     }
-    await handleStart(taskId);
+    await handleStart(taskId); // IDLE → start ปกติ
   }
 
   async function confirmSwitchOrSkip() {
