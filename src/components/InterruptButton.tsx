@@ -27,7 +27,17 @@ export function InterruptButton({ visible, onInterrupt }: InterruptButtonProps) 
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+    <>
+      {/* scrim — frost พื้นหลังบางๆ ตอนเปิด (ค่าเดียวกับ room/account dropdown) */}
+      {open && (
+        <div
+          className="fixed inset-0 z-40 bg-black/[0.04]"
+          style={{ backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)" }}
+          onClick={() => setOpen(false)}
+        />
+      )}
+
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
       {/* Expanded form */}
       {open && (
         <div
@@ -90,6 +100,7 @@ export function InterruptButton({ visible, onInterrupt }: InterruptButtonProps) 
       >
         {open ? "✕" : "⚡"}
       </button>
-    </div>
+      </div>
+    </>
   );
 }
