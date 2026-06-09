@@ -267,8 +267,8 @@ export function Timer({
           </button>
         )}
 
-        {/* ปุ่มหลักที่ 2: มี task อยู่ → "เสร็จ task นี้" (แทนเริ่มใหม่) · ไม่มี task → เริ่มใหม่ */}
-        {isRunningish && onFinishEarly && timerState.currentTaskId !== null ? (
+        {/* ปุ่มหลักที่ 2: เวลาเดินอยู่ (WORK) + มี task → "เสร็จ task นี้" · นอกนั้น (พัก/ต่อเวลา) → เริ่มใหม่ */}
+        {state === "WORK" && onFinishEarly && timerState.currentTaskId !== null ? (
           <button
             onClick={onFinishEarly}
             className="rounded-xl bg-card border px-6 py-3 text-[15px] font-semibold transition-colors hover:bg-secondary active:translate-y-px"
