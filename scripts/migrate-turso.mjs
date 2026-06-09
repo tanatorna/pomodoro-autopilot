@@ -73,6 +73,19 @@ if (await tableExists("Task")) {
   }
 }
 
+// 1.7) RoomSetting (settings ต่อห้อง — sync ข้าม device)
+await run(
+  "create RoomSetting",
+  `CREATE TABLE IF NOT EXISTS "RoomSetting" (
+    "roomId" TEXT NOT NULL PRIMARY KEY,
+    "workMinutes" INTEGER NOT NULL DEFAULT 25,
+    "shortBreakMinutes" INTEGER NOT NULL DEFAULT 5,
+    "longBreakMinutes" INTEGER NOT NULL DEFAULT 15,
+    "pomodorosPerLongBreak" INTEGER NOT NULL DEFAULT 4,
+    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`
+);
+
 // 2) index บน roomId
 await run("index Task.roomId", `CREATE INDEX IF NOT EXISTS "Task_roomId_idx" ON "Task"("roomId")`);
 await run("index Session.roomId", `CREATE INDEX IF NOT EXISTS "Session_roomId_idx" ON "Session"("roomId")`);

@@ -24,8 +24,8 @@ const PANEL_LABELS: Record<SidePanel, string> = {
 };
 
 export function PomodoroApp() {
-  const { settings, durations, updateSettings } = useSettings();
   const { roomId, setRoom, createRoom, renameRoom, checkRoom, deleteRoom, roomHeaders } = useRoom();
+  const { settings, durations, updateSettings } = useSettings(roomHeaders);
 
   // ── optional sign-in: ถ้าล็อกอินแล้วบัญชีผูกห้องไว้ → สลับไปห้องนั้น ──
   const { data: session } = useSession();

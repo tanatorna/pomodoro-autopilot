@@ -41,6 +41,15 @@ model Session {
   @@index([roomId])
 }
 
+model RoomSetting {
+  roomId                String   @id
+  workMinutes           Int      @default(25)
+  shortBreakMinutes     Int      @default(5)
+  longBreakMinutes      Int      @default(15)
+  pomodorosPerLongBreak Int      @default(4)
+  updatedAt             DateTime @updatedAt
+}
+
 model ScheduleSlot {
   id         Int      @id @default(autoincrement())
   roomId     String   @default("default")
