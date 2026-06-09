@@ -296,10 +296,10 @@ export function Timer({
       {onSkip && (state === "WORK" || isPaused) && timerState.currentTaskId !== null && (
         <button
           onClick={onSkip}
-          className="-mt-2 text-[11px] px-2.5 py-0.5 rounded-full backdrop-blur-sm transition-colors
-            bg-[rgba(255,252,246,0.55)] hover:bg-[rgba(255,252,246,0.8)]
+          className="-mt-2 text-xs underline decoration-dotted underline-offset-2 transition-colors
             text-[var(--ink-soft)] hover:text-foreground"
-          style={{ textShadow: "none" }}
+          // light glow → อ่านได้ทั้งบนพื้นสว่าง (ตัวเข้ม) และพื้นมืด (ฮาโลสว่างรอบตัวอักษร)
+          style={{ textShadow: "0 1px 7px rgba(255,250,242,0.95)" }}
           title="ข้าม task นี้ไปทำตัวถัดไป"
         >
           ⏭ ข้าม task นี้
