@@ -19,8 +19,15 @@ if (!url || !url.startsWith("libsql")) {
   console.error("❌ ตั้ง DATABASE_URL ให้เป็น libsql://... ก่อน (อย่าใช้ file:./dev.db)");
   process.exit(1);
 }
-if (!authToken || authToken.includes("<")) {
-  console.error("❌ ตั้ง TURSO_AUTH_TOKEN เป็น token จริง (อย่าใส่ placeholder)");
+// token จริงเป็น JWT (ขึ้นต้น "ey", ไม่มีช่องว่าง) · ถ้าไม่ใช่ มักเป็นข้อความ error
+// จาก `turso db tokens create` ตอนยังไม่ได้ login → กันส่ง token ขยะแล้วเจอ HTTP 400 งงๆ
+if (!authToken || !/^ey[A-Za-z0-9_-]+\./.test(authToken.trim())) {
+  console.error(
+    "❌ TURSO_AUTH_TOKEN ไม่ใช่ token จริง (ควรขึ้นต้น 'ey...')\n" +
+      "   มักเกิดจาก `turso db tokens create` ตอนยังไม่ได้ login → ได้ข้อความ error มาแทน token\n" +
+      "   แก้: รัน `turso auth login` ก่อน  หรือ  ก๊อป TURSO_AUTH_TOKEN จาก Vercel env มาใช้ตรงๆ"
+  );
+  if (authToken) console.error(`   (ค่าที่ได้ตอนนี้: "${authToken.slice(0, 50)}...")`);
   process.exit(1);
 }
 
