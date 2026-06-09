@@ -267,38 +267,35 @@ export function Timer({
           </button>
         )}
 
-        {isRunningish && (
+        {/* ปุ่มหลักที่ 2: มี task อยู่ → "เสร็จ task นี้" (แทนเริ่มใหม่) · ไม่มี task → เริ่มใหม่ */}
+        {isRunningish && onFinishEarly && timerState.currentTaskId !== null ? (
+          <button
+            onClick={onFinishEarly}
+            className="rounded-xl bg-card border px-6 py-3 text-[15px] font-semibold transition-colors hover:bg-secondary active:translate-y-px"
+            style={{ color: "var(--success)", borderColor: "var(--success)" }}
+            title="task นี้เสร็จแล้ว — นับลูกนี้ให้ + ทำต่อในเวลาที่เหลือ"
+          >
+            ✓ เสร็จ task นี้
+          </button>
+        ) : isRunningish ? (
           <button
             onClick={onRestart}
             className="rounded-xl px-4 py-3 text-[15px] font-medium text-[var(--ink-soft)] transition-colors hover:text-foreground active:translate-y-px"
           >
             เริ่มใหม่
           </button>
-        )}
+        ) : null}
       </div>
 
-      {/* Secondary actions — เฉพาะตอน WORK/PAUSED ที่กำลังทำ task อยู่ */}
-      {(state === "WORK" || isPaused) && timerState.currentTaskId !== null && (
-        <div className="-mt-2 flex items-center gap-4">
-          {onFinishEarly && (
-            <button
-              onClick={onFinishEarly}
-              className="text-xs text-[var(--success)] hover:opacity-80 underline decoration-dotted"
-              title="task นี้เสร็จแล้ว — นับลูกนี้ให้ + ทำต่อในเวลาที่เหลือ"
-            >
-              ✓ เสร็จ task นี้
-            </button>
-          )}
-          {onSkip && (
-            <button
-              onClick={onSkip}
-              className="text-xs text-muted-foreground hover:text-foreground underline decoration-dotted"
-              title="ข้าม task นี้ไปทำตัวถัดไป"
-            >
-              ⏭ ข้าม task นี้
-            </button>
-          )}
-        </div>
+      {/* Secondary action — ข้าม task (เสร็จ task นี้ ย้ายไปเป็นปุ่มหลักแล้ว) */}
+      {onSkip && (state === "WORK" || isPaused) && timerState.currentTaskId !== null && (
+        <button
+          onClick={onSkip}
+          className="-mt-2 text-xs text-muted-foreground hover:text-foreground underline decoration-dotted"
+          title="ข้าม task นี้ไปทำตัวถัดไป"
+        >
+          ⏭ ข้าม task นี้
+        </button>
       )}
     </div>
   );
