@@ -96,8 +96,11 @@ export function ScheduleMain({
             return (
               <li
                 key={task.id}
-                className={`flex flex-col gap-2 px-3 py-2.5 rounded-2xl transition-colors group
-                  ${isActive ? "glass-card-active" : "glass-card"}`}
+                className={`flex flex-col gap-2 px-3 py-2.5 rounded-xl border transition-colors group
+                  ${isActive
+                    ? "bg-accent border-[var(--border-active)]"
+                    : "bg-card border-border hover:bg-secondary"
+                  }`}
               >
                 {/* Row 1: rank + dot + title (wrap) + pomodoro pill */}
                 <div className="flex items-start gap-2">
@@ -241,7 +244,7 @@ export function ScheduleMain({
 
       {/* Day summary */}
       {(sorted.length > 0 || totalDonePomodoros > 0) && (
-        <div className="glass-card rounded-2xl p-3 flex flex-col gap-3 shrink-0">
+        <div className="border border-border rounded-2xl p-3 bg-card flex flex-col gap-3 shrink-0">
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">🌙 สรุปวันนี้</span>
             <div className="flex gap-3 text-xs">

@@ -252,7 +252,7 @@ export function Timer({
         {isRunningish && !isPaused && (
           <button
             onClick={onPause}
-            className="glass-card rounded-xl px-6 py-3 text-[15px] font-semibold text-[var(--ink-soft)] transition-colors active:translate-y-px"
+            className="rounded-xl bg-card border border-[var(--border-strong)] px-6 py-3 text-[15px] font-semibold text-[var(--ink-soft)] transition-colors hover:bg-secondary active:translate-y-px"
           >
             หยุดชั่วคราว
           </button>
@@ -271,8 +271,8 @@ export function Timer({
         {isRunningish && onFinishEarly && timerState.currentTaskId !== null ? (
           <button
             onClick={onFinishEarly}
-            className="glass-card rounded-xl px-6 py-3 text-[15px] font-semibold transition-colors active:translate-y-px"
-            style={{ color: "var(--success)", borderColor: "rgba(93,122,79,0.5)" }}
+            className="rounded-xl bg-card border px-6 py-3 text-[15px] font-semibold transition-colors hover:bg-secondary active:translate-y-px"
+            style={{ color: "var(--success)", borderColor: "var(--success)" }}
             title="task นี้เสร็จแล้ว — นับลูกนี้ให้ + ทำต่อในเวลาที่เหลือ"
           >
             ✓ เสร็จ task นี้
