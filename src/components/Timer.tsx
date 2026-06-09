@@ -20,6 +20,8 @@ interface TimerProps {
   onRestart: () => void;
   /** ข้าม task ปัจจุบัน → ไป task ถัดไปอัตโนมัติ (โผล่ตอน WORK/PAUSED) */
   onSkip?: () => void;
+  /** จบ task ปัจจุบันก่อนเวลา (นับลูกนี้ให้ task นี้ + ทำต่อในเวลาที่เหลือ) */
+  onFinishEarly?: () => void;
 }
 
 const LABELS: Record<TimerState["state"], string> = {
@@ -63,6 +65,7 @@ export function Timer({
   onResume,
   onRestart,
   onSkip,
+  onFinishEarly,
 }: TimerProps) {
   const state = timerState.state;
   const color = stateColor(state);
@@ -274,15 +277,28 @@ export function Timer({
         )}
       </div>
 
-      {/* Skip (secondary) — เฉพาะตอน WORK/PAUSED ที่กำลังทำ task อยู่ */}
-      {onSkip && (state === "WORK" || isPaused) && timerState.currentTaskId !== null && (
-        <button
-          onClick={onSkip}
-          className="-mt-2 text-xs text-muted-foreground hover:text-foreground underline decoration-dotted"
-          title="ข้าม task นี้ไปทำตัวถัดไป"
-        >
-          ⏭ ข้าม task นี้
-        </button>
+      {/* Secondary actions — เฉพาะตอน WORK/PAUSED ที่กำลังทำ task อยู่ */}
+      {(state === "WORK" || isPaused) && timerState.currentTaskId !== null && (
+        <div className="-mt-2 flex items-center gap-4">
+          {onFinishEarly && (
+            <button
+              onClick={onFinishEarly}
+              className="text-xs text-[var(--success)] hover:opacity-80 underline decoration-dotted"
+              title="task นี้เสร็จแล้ว — นับลูกนี้ให้ + ทำต่อในเวลาที่เหลือ"
+            >
+              ✓ เสร็จ task นี้
+            </button>
+          )}
+          {onSkip && (
+            <button
+              onClick={onSkip}
+              className="text-xs text-muted-foreground hover:text-foreground underline decoration-dotted"
+              title="ข้าม task นี้ไปทำตัวถัดไป"
+            >
+              ⏭ ข้าม task นี้
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

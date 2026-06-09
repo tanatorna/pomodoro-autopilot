@@ -27,6 +27,7 @@ interface UsePomodoroReturn {
   handleRestart: () => Promise<void>;
   handleSwitchTask: (taskId: number) => Promise<void>;
   handleSkip: () => Promise<void>;
+  handleFinishEarly: () => Promise<void>;
   refresh: () => Promise<void>;
   syncError: string | null;
   wakeLockActive: boolean;
@@ -354,6 +355,16 @@ export function usePomodoro(
     applyState(next);
   }, []);
 
+  /** จบ task ปัจจุบันก่อนเวลา — นับลูกนี้ให้ task นี้ + ทำต่อในเวลาที่เหลือ */
+  const handleFinishEarly = useCallback(async () => {
+    primeAudio();
+    const next = await callSessionAPI(
+      { action: "finishEarly", durations: durationsRef.current },
+      headersRef.current
+    );
+    applyState(next);
+  }, []);
+
   return {
     timerState,
     display: formatTime(remainingMs),
@@ -365,6 +376,7 @@ export function usePomodoro(
     handleRestart,
     handleSwitchTask,
     handleSkip,
+    handleFinishEarly,
     refresh,
     syncError,
     wakeLockActive,

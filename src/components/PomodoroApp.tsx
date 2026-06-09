@@ -38,7 +38,7 @@ export function PomodoroApp() {
   const {
     timerState, display, remainingMs, loading,
     handleStart, handlePause, handleResume, handleRestart,
-    handleSwitchTask, handleSkip, refresh, syncError, wakeLockActive,
+    handleSwitchTask, handleSkip, handleFinishEarly, refresh, syncError, wakeLockActive,
   } = usePomodoro(durations, roomHeaders);
 
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -304,6 +304,26 @@ export function PomodoroApp() {
       b.priority !== a.priority ? b.priority - a.priority : a.id - b.id
     );
 
+  // "ต่อเวลา": จบ task ก่อนเวลา (currentTaskId = null) แต่ยัง WORK + มี task เหลือ
+  // → โชว์ task ถัดไปว่ากำลังทำในเวลาที่เหลือ (ลูกนี้ยังไม่นับให้มัน)
+  const isRunning =
+    timerState.state === "WORK" || timerState.state === "PAUSED";
+  const bonusTask =
+    !currentTask && isRunning && timerState.endsAt !== null ? pendingTasks[0] : null;
+  const currentTaskTitle = currentTask
+    ? currentTask.title
+    : bonusTask
+      ? `${bonusTask.title} (ต่อเวลา)`
+      : null;
+
+  // จบ task ปัจจุบันก่อนเวลา
+  async function handleFinish() {
+    const title = currentTask?.title ?? "task";
+    await handleFinishEarly();
+    await loadTasks();
+    showToast(`✓ เสร็จ “${title}”`);
+  }
+
   return (
     <div className="min-h-screen ember-bg text-foreground relative flex flex-col md:grid md:grid-cols-[3fr_2fr] md:h-screen">
       {/* build version (เล็กมุมล่างซ้าย จางๆ) — ยืนยันว่า client รัน bundle เวอร์ชันไหน */}
@@ -335,7 +355,7 @@ export function PomodoroApp() {
             remainingMs={remainingMs}
             totalMs={totalMs}
             loading={loading}
-            currentTaskTitle={currentTask?.title ?? null}
+            currentTaskTitle={currentTaskTitle}
             perLong={durations.POMODOROS_PER_LONG_BREAK}
             pendingTasks={pendingTasks}
             onStart={(taskId) => handleStart(taskId)}
@@ -343,6 +363,7 @@ export function PomodoroApp() {
             onResume={handleResume}
             onRestart={handleRestart}
             onSkip={() => setPendingSwitch({ kind: "skip" })}
+            onFinishEarly={currentTask ? handleFinish : undefined}
           />
 
           {/* สถานะ Wake Lock — บอก user (และ diagnose) ว่าจอจะดับระหว่างโฟกัสไหม

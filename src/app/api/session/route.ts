@@ -54,7 +54,8 @@ type SessionAction =
   | { action: "restart"; durations?: Partial<DurationConfig> }
   | { action: "expire"; durations?: Partial<DurationConfig> }
   | { action: "switch"; taskId: number; durations?: Partial<DurationConfig> }
-  | { action: "skip"; durations?: Partial<DurationConfig> };
+  | { action: "skip"; durations?: Partial<DurationConfig> }
+  | { action: "finishEarly"; durations?: Partial<DurationConfig> };
 
 export async function POST(request: Request) {
   const roomId = getRoomId(request);
@@ -181,6 +182,46 @@ export async function POST(request: Request) {
       });
       if (nextTask) {
         next = workWith(current, nowMs, nextTask.id, body.durations);
+      } else {
+        next = { ...INITIAL_STATE, completedPomodoros: current.completedPomodoros };
+      }
+      break;
+    }
+    case "finishEarly": {
+      // จบ task ปัจจุบันก่อนเวลา — ลูกที่กำลังทำนับเป็นของ task นี้เต็มลูก (credit ให้ A)
+      // นาฬิกานับต่อ (ไม่รีเซ็ต) · ดึง task ถัดไปมาทำในเวลาที่เหลือ แต่ลูกนี้ "ไม่นับให้ task ใหม่"
+      // (currentTaskId = null → ตอนกริ่งดัง expire จะไม่ credit ใคร → พัก → task ใหม่เริ่มนับลูกของตัวเอง)
+      if (current.currentTaskId != null) {
+        const task = await prisma.task.findFirst({
+          where: { id: current.currentTaskId, roomId },
+        });
+        if (task) {
+          // ปิด slot ที่กำลังทำ (ของ task นี้) + นับลูกนี้ให้ task → done
+          const slot = await prisma.scheduleSlot.findFirst({
+            where: { roomId, status: "pending", taskId: task.id },
+            orderBy: { slotIndex: "asc" },
+          });
+          if (slot) {
+            await prisma.scheduleSlot.update({ where: { id: slot.id }, data: { status: "completed" } });
+          }
+          await prisma.task.update({
+            where: { id: task.id },
+            data: { completedPomodoros: task.completedPomodoros + 1, status: "done" },
+          });
+        }
+      }
+
+      // มี task เหลือ → ทำต่อในเวลาที่เหลือ (currentTaskId = null = "ต่อเวลา" ลูกนี้ไม่นับให้ใคร)
+      // ไม่มี task เหลือ → จบ (IDLE)
+      const remaining = await prisma.task.count({
+        where: {
+          roomId,
+          status: { in: ["pending", "in-progress"] },
+          ...(current.currentTaskId != null ? { id: { not: current.currentTaskId } } : {}),
+        },
+      });
+      if (remaining > 0 && current.state === "WORK") {
+        next = { ...current, currentTaskId: null }; // คงนาฬิกาเดิม ทำงานต่อ
       } else {
         next = { ...INITIAL_STATE, completedPomodoros: current.completedPomodoros };
       }

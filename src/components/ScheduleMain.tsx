@@ -46,6 +46,7 @@ export function ScheduleMain({
   // ยอด "สรุปวันนี้" = ผลรวม pomodoro ที่ task ทำเสร็จ (สะสมตลอดวัน · ไม่ใช่ตัวนับ cadence ของ session
   // ที่รีเซ็ตเมื่อเริ่มใหม่) → ยอดวันไม่หายเมื่อ session counter รีเซ็ต
   const totalDonePomodoros = tasks.reduce((sum, t) => sum + t.completedPomodoros, 0);
+  const tasksDone = tasks.filter((t) => t.status === "done").length;
 
   // ─── inline edit state (title + pomodoros) ───
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -248,6 +249,7 @@ export function ScheduleMain({
             <span className="text-xs text-muted-foreground">🌙 สรุปวันนี้</span>
             <div className="flex gap-3 text-xs">
               <span className="text-primary font-semibold">{totalDonePomodoros} 🍅</span>
+              <span style={{ color: "var(--success)" }}>✓ {tasksDone} task</span>
               <span className="text-muted-foreground">{pendingCount} ค้าง</span>
             </div>
           </div>
