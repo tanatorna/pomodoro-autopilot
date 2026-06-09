@@ -28,6 +28,7 @@ interface UsePomodoroReturn {
   handleSwitchTask: (taskId: number) => Promise<void>;
   handleSkip: () => Promise<void>;
   handleFinishEarly: () => Promise<void>;
+  clampDuration: () => Promise<void>;
   refresh: () => Promise<void>;
   syncError: string | null;
   wakeLockActive: boolean;
@@ -358,6 +359,15 @@ export function usePomodoro(
     applyState(next);
   }, []);
 
+  /** หด phase ที่เดินอยู่ให้ตรง duration ปัจจุบัน (เช่น break เก่ายาวเกิน setting ที่เพิ่ง sync) */
+  const clampDuration = useCallback(async () => {
+    const next = await callSessionAPI(
+      { action: "clampDuration", durations: durationsRef.current },
+      headersRef.current
+    );
+    applyState(next);
+  }, []);
+
   return {
     timerState,
     display: formatTime(remainingMs),
@@ -370,6 +380,7 @@ export function usePomodoro(
     handleSwitchTask,
     handleSkip,
     handleFinishEarly,
+    clampDuration,
     refresh,
     syncError,
     wakeLockActive,

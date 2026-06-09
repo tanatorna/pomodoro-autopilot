@@ -55,7 +55,8 @@ type SessionAction =
   | { action: "expire"; durations?: Partial<DurationConfig> }
   | { action: "switch"; taskId: number; durations?: Partial<DurationConfig> }
   | { action: "skip"; durations?: Partial<DurationConfig> }
-  | { action: "finishEarly"; durations?: Partial<DurationConfig> };
+  | { action: "finishEarly"; durations?: Partial<DurationConfig> }
+  | { action: "clampDuration"; durations?: Partial<DurationConfig> };
 
 export async function POST(request: Request) {
   const roomId = getRoomId(request);
@@ -224,6 +225,22 @@ export async function POST(request: Request) {
         next = { ...current, currentTaskId: null }; // คงนาฬิกาเดิม ทำงานต่อ
       } else {
         next = { ...INITIAL_STATE, completedPomodoros: current.completedPomodoros };
+      }
+      break;
+    }
+    case "clampDuration": {
+      // phase ที่กำลังเดิน "ยาวเกิน" duration ที่ตั้งไว้ (เช่น break ถูกสร้างด้วย setting เก่า
+      // ก่อน settings-sync) → หดให้ตรง setting · ไม่แตะถ้าเหลือ ≤ duration (break ปกติที่เดินอยู่)
+      const runningPhase =
+        current.state === "WORK" ||
+        current.state === "SHORT_BREAK" ||
+        current.state === "LONG_BREAK";
+      if (runningPhase && current.endsAt !== null) {
+        const d = { ...DURATIONS, ...body.durations };
+        const max = d[current.state as "WORK" | "SHORT_BREAK" | "LONG_BREAK"];
+        if (current.endsAt - nowMs > max) {
+          next = { ...current, endsAt: nowMs + max, remainingMs: null };
+        }
       }
       break;
     }

@@ -38,8 +38,22 @@ export function PomodoroApp() {
   const {
     timerState, display, remainingMs, loading,
     handleStart, handlePause, handleResume, handleRestart,
-    handleSwitchTask, handleSkip, handleFinishEarly, refresh, syncError, wakeLockActive,
+    handleSwitchTask, handleSkip, handleFinishEarly, clampDuration, refresh, syncError, wakeLockActive,
   } = usePomodoro(durations, roomHeaders);
+
+  // ถ้า phase ที่เดินอยู่ยาวเกิน duration ปัจจุบัน (เช่น break ถูกสร้างด้วย setting เก่า
+  // ก่อน settings-sync) → หดให้ตรง setting · guard ด้วย endsAt กัน clamp ซ้ำ
+  const clampedRef = useRef<number | null>(null);
+  useEffect(() => {
+    const st = timerState.state;
+    if (st !== "WORK" && st !== "SHORT_BREAK" && st !== "LONG_BREAK") return;
+    if (timerState.endsAt === null) return;
+    const configured = durations[st]; // ms ตาม setting ปัจจุบัน
+    if (remainingMs > configured + 1500 && clampedRef.current !== timerState.endsAt) {
+      clampedRef.current = timerState.endsAt;
+      void clampDuration();
+    }
+  }, [timerState.state, timerState.endsAt, remainingMs, durations, clampDuration]);
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [backlog, setBacklog] = useState<Task[]>([]);
