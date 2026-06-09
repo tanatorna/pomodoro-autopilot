@@ -31,8 +31,15 @@ export function InterruptButton({ visible, onInterrupt }: InterruptButtonProps) 
       {/* Expanded form */}
       {open && (
         <div
-          className="paper-panel pm-pop rounded-2xl p-4 w-72"
-          style={{ border: "1px solid var(--border-active)", boxShadow: "0 14px 40px rgba(120,80,40,0.16)" }}
+          className="pm-pop rounded-2xl p-4 w-72"
+          style={{
+            // glass แท้แต่อ่านง่าย (เหมือน room/account dropdown) — กันข้อความ layer ล่างทะลุ
+            background: "rgba(255, 252, 246, 0.78)",
+            backdropFilter: "blur(32px) saturate(150%)",
+            WebkitBackdropFilter: "blur(32px) saturate(150%)",
+            border: "1px solid var(--border-active)",
+            boxShadow: "0 14px 40px rgba(120,80,40,0.2)",
+          }}
         >
           <p className="text-sm font-semibold mb-2" style={{ color: "var(--danger)" }}>
             ⚡ งานด่วน — แทรกเลย
