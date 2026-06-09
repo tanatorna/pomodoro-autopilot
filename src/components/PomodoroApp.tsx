@@ -90,6 +90,19 @@ export function PomodoroApp() {
     void loadBacklog();
   }, [roomId, loadTasks, loadBacklog]);
 
+  // re-fetch task list + backlog ตอนสลับกลับมา device นี้ → task ตรงกันข้าม device
+  // (คู่กับ session refresh ใน usePomodoro ที่ sync state ตอน visible)
+  useEffect(() => {
+    if (!roomId) return;
+    function onVisible() {
+      if (document.visibilityState !== "visible") return;
+      void loadTasks();
+      void loadBacklog();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [roomId, loadTasks, loadBacklog]);
+
   // ─── Task actions ─────────────────────────
   async function handleAddTask(title: string, estimatedPomodoros: number) {
     await fetch("/api/tasks", {
