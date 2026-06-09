@@ -294,8 +294,29 @@ export function PomodoroApp() {
     (t) => t.status === "pending" || t.status === "in-progress"
   ).length;
 
-  const currentTask =
+  const currentTaskRaw =
     tasks.find((t) => t.id === timerState.currentTaskId) ?? null;
+  // ถ้า timer ชี้ task ที่ done แล้ว (client optimistic ยัง carry task เก่าตอน break→work
+  // ก่อน server reconcile) → ไม่ถือว่าเป็น current · + self-heal ด้วย refresh ด้านล่าง
+  const currentTask =
+    currentTaskRaw && currentTaskRaw.status !== "done" ? currentTaskRaw : null;
+
+  // self-heal: timer WORK/PAUSED แต่ currentTaskId ชี้ task ที่ done → re-sync จาก server
+  // (server advance ไป task ถัดไปแล้ว · กันค้างโชว์ task ขีดฆ่าเมื่อ reconcile พลาด/เน็ตสะดุด)
+  const healingRef = useRef<number | null>(null);
+  useEffect(() => {
+    const running =
+      timerState.state === "WORK" || timerState.state === "PAUSED";
+    if (!running || timerState.currentTaskId == null) {
+      healingRef.current = null;
+      return;
+    }
+    const cur = tasks.find((t) => t.id === timerState.currentTaskId);
+    if (cur && cur.status === "done" && healingRef.current !== timerState.currentTaskId) {
+      healingRef.current = timerState.currentTaskId; // กัน refresh ซ้ำสำหรับ task เดิม
+      void refresh();
+    }
+  }, [timerState.state, timerState.currentTaskId, tasks, refresh]);
 
   // Pending tasks เรียง priority สูง→ต่ำ → id (ให้ Timer ใช้ preview/picker ตอน IDLE)
   const pendingTasks = tasks
