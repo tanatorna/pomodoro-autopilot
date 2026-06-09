@@ -168,7 +168,8 @@ export async function POST(request: Request) {
       break;
     }
     case "skip": {
-      // ข้าม task ปัจจุบัน → void + ไป task ถัดไปอัตโนมัติ (หรือ IDLE ถ้าคิวว่าง)
+      // ข้าม task ปัจจุบัน → void ลูกที่กำลังทำค้างอยู่ (ไม่นับ) + ไป task ถัดไป
+      // ลูกที่ทำเสร็จแล้วเก็บไว้ (ไม่ reset) → กลับมาทำต่อทีหลังได้
       await voidCurrentSlot(roomId);
       const nextTask = await prisma.task.findFirst({
         where: {
