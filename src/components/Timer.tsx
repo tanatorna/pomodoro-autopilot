@@ -51,16 +51,6 @@ const SIZE = 230;
 const R = 46;
 const C = 2 * Math.PI * R;
 
-// ปุ่มกระจก: โปร่ง + เบลอ + ขอบสว่างบน · ตัวหนังสือสีเดียวกันทั้ง 2 ปุ่ม
-const GLASS_BTN: React.CSSProperties = {
-  background: "rgba(255, 252, 246, 0.4)",
-  backdropFilter: "blur(18px) saturate(140%)",
-  WebkitBackdropFilter: "blur(18px) saturate(140%)",
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6), 0 6px 20px rgba(120,80,40,0.12)",
-  border: "1px solid rgba(255,255,255,0.45)",
-  color: "var(--ink-soft)",
-};
-
 export function Timer({
   timerState,
   display,
@@ -262,8 +252,10 @@ export function Timer({
         {isRunningish && !isPaused && (
           <button
             onClick={onPause}
-            className="rounded-xl px-6 py-3 text-[15px] font-semibold transition-colors active:translate-y-px"
-            style={GLASS_BTN}
+            className="rounded-xl px-6 py-3 text-[15px] font-semibold text-[var(--ink-soft)] transition-colors active:translate-y-px
+              bg-[rgba(255,252,246,0.4)] hover:bg-[rgba(255,252,246,0.62)]
+              backdrop-blur-[18px] backdrop-saturate-[140%] border border-[rgba(255,255,255,0.45)]
+              shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_6px_20px_rgba(120,80,40,0.12)]"
           >
             หยุดชั่วคราว
           </button>
@@ -282,8 +274,10 @@ export function Timer({
         {state === "WORK" && onFinishEarly && timerState.currentTaskId !== null ? (
           <button
             onClick={onFinishEarly}
-            className="rounded-xl px-6 py-3 text-[15px] font-semibold transition-colors active:translate-y-px"
-            style={GLASS_BTN}
+            className="rounded-xl px-6 py-3 text-[15px] font-semibold text-[var(--ink-soft)] transition-colors active:translate-y-px
+              bg-[rgba(255,252,246,0.4)] hover:bg-[rgba(255,252,246,0.62)]
+              backdrop-blur-[18px] backdrop-saturate-[140%] border border-[rgba(255,255,255,0.45)]
+              shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_6px_20px_rgba(120,80,40,0.12)]"
             title="task นี้เสร็จแล้ว — นับลูกนี้ให้ + ทำต่อในเวลาที่เหลือ"
           >
             ✓ เสร็จ task นี้
@@ -298,11 +292,14 @@ export function Timer({
         ) : null}
       </div>
 
-      {/* Secondary action — ข้าม task (เสร็จ task นี้ ย้ายไปเป็นปุ่มหลักแล้ว) */}
+      {/* Secondary action — ข้าม task · พื้นกระจกเล็กๆ รองหลัง → อ่านได้ทุกพื้นหลัง */}
       {onSkip && (state === "WORK" || isPaused) && timerState.currentTaskId !== null && (
         <button
           onClick={onSkip}
-          className="-mt-2 text-xs text-muted-foreground hover:text-foreground underline decoration-dotted"
+          className="-mt-2 text-[11px] px-2.5 py-0.5 rounded-full backdrop-blur-sm transition-colors
+            bg-[rgba(255,252,246,0.55)] hover:bg-[rgba(255,252,246,0.8)]
+            text-[var(--ink-soft)] hover:text-foreground"
+          style={{ textShadow: "none" }}
           title="ข้าม task นี้ไปทำตัวถัดไป"
         >
           ⏭ ข้าม task นี้
