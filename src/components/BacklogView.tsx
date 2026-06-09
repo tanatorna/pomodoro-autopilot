@@ -49,7 +49,7 @@ export function BacklogView({ tasks, onAdd, onMoveToActive, onScheduleTask }: Ba
     return (
       <li
         key={task.id}
-        className="flex flex-col gap-2 px-3 py-2.5 rounded-xl bg-card border border-border"
+        className="flex flex-col gap-2 px-3 py-2.5 rounded-2xl glass-card"
       >
         <p className="text-sm text-[var(--ink-soft)] leading-snug break-words" title={task.title}>
           {task.title}
