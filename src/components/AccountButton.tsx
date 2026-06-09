@@ -46,8 +46,9 @@ export function AccountButton({ roomId, roomHeaders }: AccountButtonProps) {
     <div className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center justify-center w-7 h-7 rounded-full
-          text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+        className={`flex items-center justify-center w-7 h-7 rounded-full
+          text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90
+          ${open ? "relative z-50" : ""}`}
         style={{ background: "linear-gradient(135deg, #d99a5f, #c15f3c)" }}
         title={session.user?.email ?? "account"}
       >

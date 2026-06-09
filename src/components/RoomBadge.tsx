@@ -105,9 +105,10 @@ export function RoomBadge({
       {/* Room badge */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg
+        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg
           bg-card border border-border hover:border-[var(--border-strong)]
-          text-xs font-mono text-muted-foreground hover:text-foreground transition-colors"
+          text-xs font-mono text-muted-foreground hover:text-foreground transition-colors
+          ${open ? "relative z-50" : ""}`}
         title="จัดการห้อง"
       >
         <span className="text-[var(--faint)]">🔑</span>
