@@ -230,25 +230,18 @@ export function usePomodoro(
   // ─── Sync ref ──────────────────────────────
   useEffect(() => { timerStateRef.current = timerState; }, [timerState]);
 
-  // ─── Visibility change (catch-up) ─────────
+  // ─── Visibility change (catch-up + cross-device re-sync) ─────────
+  // ตอนสลับกลับมาที่ device นี้ → ดึง state จริงจาก server (refresh) → ตรงกับ device อื่น
+  // (local-first ขับ timer ระหว่างเปิดอยู่ · แต่พอกลับมา sync server ก่อน กัน 2 เครื่อง drift กัน)
+  // ticker จะจัดการ expiry เองถ้า state ที่ sync มาหมดเวลาแล้ว
   useEffect(() => {
     function handleVisibilityChange() {
       if (document.visibilityState !== "visible") return;
-      const state = timerStateRef.current;
-      if (state.state === "IDLE" || state.state === "PAUSED") return;
-      if (state.endsAt === null) return;
-
-      const nowMs = nowServer();
-      if (isExpired(state.endsAt, nowMs)) {
-        triggerExpire();
-      } else {
-        setRemainingMs(computeRemaining(state.endsAt, nowMs));
-      }
+      void refresh();
     }
-
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [triggerExpire]);
+  }, [refresh]);
 
   // ─── Screen Wake Lock ─────────────────────
   // กันจอดับระหว่าง timer เดิน → หน้าไม่ถูก suspend → ticker เดินต่อ → เสียง/noti ดังตรงเวลา
