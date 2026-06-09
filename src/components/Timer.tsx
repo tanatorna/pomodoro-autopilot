@@ -51,6 +51,16 @@ const SIZE = 230;
 const R = 46;
 const C = 2 * Math.PI * R;
 
+// ปุ่มกระจก: โปร่ง + เบลอ + ขอบสว่างบน · ตัวหนังสือสีเดียวกันทั้ง 2 ปุ่ม
+const GLASS_BTN: React.CSSProperties = {
+  background: "rgba(255, 252, 246, 0.4)",
+  backdropFilter: "blur(18px) saturate(140%)",
+  WebkitBackdropFilter: "blur(18px) saturate(140%)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6), 0 6px 20px rgba(120,80,40,0.12)",
+  border: "1px solid rgba(255,255,255,0.45)",
+  color: "var(--ink-soft)",
+};
+
 export function Timer({
   timerState,
   display,
@@ -252,7 +262,8 @@ export function Timer({
         {isRunningish && !isPaused && (
           <button
             onClick={onPause}
-            className="rounded-xl bg-card border border-[var(--border-strong)] px-6 py-3 text-[15px] font-semibold text-[var(--ink-soft)] transition-colors hover:bg-secondary active:translate-y-px"
+            className="rounded-xl px-6 py-3 text-[15px] font-semibold transition-colors active:translate-y-px"
+            style={GLASS_BTN}
           >
             หยุดชั่วคราว
           </button>
@@ -271,8 +282,8 @@ export function Timer({
         {state === "WORK" && onFinishEarly && timerState.currentTaskId !== null ? (
           <button
             onClick={onFinishEarly}
-            className="rounded-xl bg-card border px-6 py-3 text-[15px] font-semibold transition-colors hover:bg-secondary active:translate-y-px"
-            style={{ color: "var(--success)", borderColor: "var(--success)" }}
+            className="rounded-xl px-6 py-3 text-[15px] font-semibold transition-colors active:translate-y-px"
+            style={GLASS_BTN}
             title="task นี้เสร็จแล้ว — นับลูกนี้ให้ + ทำต่อในเวลาที่เหลือ"
           >
             ✓ เสร็จ task นี้
