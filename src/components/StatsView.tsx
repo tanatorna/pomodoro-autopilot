@@ -64,21 +64,24 @@ export function StatsView({ days, onLoadDay }: StatsViewProps) {
   const totalPomodoros = days.reduce((s, d) => s + d.totalPomodoros, 0);
   const totalTasks = days.reduce((s, d) => s + d.tasksDone, 0);
   const maxPomodoros = Math.max(...days.map((d) => d.totalPomodoros), 1);
+  // เฉลี่ยต่อวัน = baseline ของตัวเอง (มีความหมายกว่ายอดรวมที่โตไปเรื่อยๆ)
+  const avgPomodoros = (totalPomodoros / days.length).toFixed(1);
+  const avgTasks = (totalTasks / days.length).toFixed(1);
 
   return (
     <div className="flex flex-col gap-4 h-full">
       {/* สรุปรวม */}
       <div className="border border-border rounded-2xl p-4 bg-card flex items-center justify-around text-center">
         <div className="flex flex-col">
-          <span className="text-2xl font-semibold text-primary">{totalPomodoros}</span>
-          <span className="text-xs text-muted-foreground">🍅 ลูกรวม</span>
+          <span className="text-2xl font-semibold text-primary">{avgPomodoros}</span>
+          <span className="text-xs text-muted-foreground">🍅 เฉลี่ย/วัน</span>
         </div>
         <div className="w-px self-stretch bg-border" />
         <div className="flex flex-col">
           <span className="text-2xl font-semibold" style={{ color: "var(--success)" }}>
-            {totalTasks}
+            {avgTasks}
           </span>
-          <span className="text-xs text-muted-foreground">✓ task รวม</span>
+          <span className="text-xs text-muted-foreground">✓ task เฉลี่ย/วัน</span>
         </div>
         <div className="w-px self-stretch bg-border" />
         <div className="flex flex-col">
