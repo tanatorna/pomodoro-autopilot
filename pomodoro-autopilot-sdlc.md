@@ -6,7 +6,9 @@
 > **สถานะ:** Flagship project (แทนที่ expense tracker) — ทำใน **Week 5–6** ของ 12-Week SDET Plan
 > **เป้าหมายซ้อน:** Portfolio piece + ใช้ตอบสัมภาษณ์ SDET ("PM ที่เขียน production-grade automated test ได้")
 >
-> **อัปเดตล่าสุด (2026-06-09):** 🚀 **ใช้งานจริงบน prod ทุกวัน** (Vercel + Turso) — Round 3 เน้น **ความเสถียรบนมือถือ + sync ข้ามเครื่อง** หลังใช้จริงเจอ bug จาก use-case จริง · ปิดมหากาพย์ **timer ค้างที่ 00:01 บนมือถือ** (timeout + optimistic local-first + ชดเชย clock-skew + server-clamp + no-store HTML + build stamp) · **Multi-device sync** ครบ (session + task list + backlog + settings re-fetch on focus, settings เก็บ per-room ที่ server) · **Finish-early** (จบ task ก่อนเวลา → แบ่งเวลาที่เหลือ, นับลูกให้ task เดิมเต็มลูก ไม่มีเศษ) · **Screen Wake Lock** + ปลดล็อกเสียงบนมือถือ (AudioContext prime on gesture) · แก้ cadence long-break, advance-to-next เมื่อ task done, reorder neighbor-swap, glass dropdown/popup/scrim · favicon 🍎 · **Phase 2 QA ยังไม่เริ่ม ← งานหลักที่เหลือ**
+> **อัปเดตล่าสุด (2026-06-10):** 🚀 **ใช้งานจริงบน prod ทุกวัน** (Vercel + Turso) — Round 4 เน้น **ปิด loop การใช้งานรายวัน + ประวัติ + ขัดเงา UI** · **Archive task ที่เสร็จ** (ปุ่ม 🧹 เก็บเข้าคลัง, status `archived`) + **auto จบวันเที่ยงคืน** (date rollover ผ่าน localStorage → archive done + reset timer, task ค้างยกมาวันใหม่) · **แท็บ 📊 Stats** = ประวัติรายวัน (🍅/task) + แท่งสัดส่วน + สรุป**ค่าเฉลี่ย/วัน** + **คลิกวันกางดู task ของวันนั้น** · สถิติ derive จาก **`Task.doneDate`** (วันที่ขีดฆ่า = เสร็จจริง, intrinsic → คงอยู่แม้ archive · pivot ทิ้ง DaySummary snapshot) · **edit/delete task ใน Backlog** ได้แล้ว (parity กับ Schedule) · scrollbar บางกลืนธีม · **Phase 2 QA ยังไม่เริ่ม ← งานหลักที่เหลือ**
+>
+> *(เดิม 2026-06-09 · Round 3 — เสถียรบนมือถือ + sync ข้ามเครื่อง: ปิดมหากาพย์ timer ค้าง 00:01 (timeout + local-first + clock-skew + server-clamp + no-store + build stamp), multi-device sync (session/task/backlog/settings re-fetch on focus), finish-early, Screen Wake Lock, mobile audio unlock, cadence/advance/reorder, glass dropdown/popup/scrim, favicon 🍎)*
 >
 > *(เดิม 2026-06-06: deploy prod ครบ Slice 1–4 + Room + Login + UI 3 รอบ (dusk → Ember+Split → Glass/Mirror) + Backlog ปักวันได้ + switch/skip — ดู Build Log Round 1–2)*
 
@@ -134,7 +136,8 @@
 - **Error/edge:** ห้องว่าง · network error · OAuth error (Testing mode = เฉพาะ test users)
 
 #### 🧩 D. Component → ไฟล์ (อ้างอิงให้ designer/dev คุยกัน)
-`PomodoroApp` (layout) · `Timer` · `ScheduleMain` (task list+form) · `TaskForm` · `BacklogView` · `SettingsPanel` · `DaySummary` · `InterruptButton` · `RoomBadge` · `AccountButton`
+`PomodoroApp` (layout) · `Timer` · `ScheduleMain` (task list+form+สรุปวันนี้) · `TaskForm` · `BacklogView` · `StatsView` (สถิติรายวัน) · `SettingsPanel` · `InterruptButton` · `RoomBadge` · `AccountButton`
+> ⚠️ *Dead code: `DaySummary.tsx` (component สรุปวันเก่า) ไม่ถูก import แล้ว — summary ย้ายเข้า `ScheduleMain` footer · ควรลบทิ้ง (ยังไม่ลบ)*
 
 #### 🌙 E. Visual ปัจจุบัน + จุดที่อยากให้ designer ช่วยขัด
 - **ธีม Ember:** พื้นหลังกระดาษอุ่น (`.ember-bg` ครีม→ดินเผา) + `.paper-panel` (กระจกฝ้าบางๆ) + accent **terracotta `#c15f3c`** · break: sage/teal · ฟอนต์ Newsreader (serif/timer) + IBM Plex Sans Thai
@@ -395,6 +398,9 @@ Slice 4 ✅ Backlog + End-of-day summary      → api/backlog, BacklogView, DayS
 | `(2026-06-10)` | **Feat: Archive task ที่เสร็จ + auto จบวันเที่ยงคืน** — status ใหม่ `archived` (zero migration, status เป็น String) · GET /api/tasks กรอง archived+backlog ออก · `POST /api/tasks/archive` (bulk done→archived, `updatedAt` = เวลาเก็บ → raw data เผื่อทำ stat รายวัน) · ปุ่ม "🧹 เก็บ task ที่เสร็จเข้าคลัง (N)" โผล่เมื่อมี task done · **auto จบวันเที่ยงคืน:** detect date rollover ผ่าน localStorage `pomodachi:lastDate:<roomId>` (on load + visibility) → archive done + reset timer · task ค้าง/รันคงเป็น pending ยกมาวันใหม่ · idempotent (ไม่ทำซ้ำในวันเดียว, ไม่ archive ตอน load แรก) |
 | `(2026-06-10)` | **Feat: Dashboard สถิติรายวัน (Phase 3)** — แท็บที่ 4 "📊 Stats" (`StatsView`) แสดงยอดรายวัน (🍅/✓task) + แท่งสัดส่วน + วันที่ไทย + สรุป**ค่าเฉลี่ย/วัน** (baseline ตัวเอง — มีความหมายกว่า total) · **คลิก card วัน → กาง accordion ดู task ของวันนั้น** (lazy-load + cache, `GET /api/stats/day?date=`) · `GET /api/stats` = `groupBy(doneDate)` · *(เดิมลองทำด้วย `DaySummary` snapshot + `archivedDate` แต่ pivot ทิ้ง — ดู row ถัดไป)* |
 | `(2026-06-10)` | **Refactor: สถิติ derive จาก `Task.doneDate` (วันเสร็จจริง)** — แทน DaySummary snapshot · stamp `doneDate` (local YYYY-MM-DD) ตอน **ขีดฆ่า** (task → done) ใน `/api/session` 2 จุด: `expire` ใช้ local date ของ `endsAt` (เวลาลูกจบจริง — ทน process หลังเที่ยงคืน) · `finishEarly` ใช้ now · client ส่ง `doneDate` มากับ body · **วันเสร็จ intrinsic กับ task → คงอยู่แม้ archive ทีหลัง** (task เสร็จวันนี้ เคลียร์พรุ่งนี้ ยังนับเป็นวันนี้) · ถอด `DaySummary` model/table + `archivedDate` + snapshot/increment/date-passing ทิ้ง (โค้ดสั้นลง) · drop ตาราง DaySummary บน prod · migrate-turso เพิ่ม `Task.doneDate` (รัน prod แล้ว ✅) |
+| `d1481d3` | **Stats: total → ค่าเฉลี่ย/วัน** — สรุปแสดง 🍅 เฉลี่ย/วัน + task เฉลี่ย/วัน + จำนวนวัน (baseline ตัวเอง ไว้เทียบ/ตั้งเป้า · total โตเรื่อยๆ ไม่บอกอะไร) |
+| `2920a23` | **Style: scrollbar บางกลืนธีม** — global plain CSS (WebKit pseudo-element + Firefox `scrollbar-width/color`) · track ใส, thumb terracotta-brown โปร่งโค้งมน · ครอบทุก scroll area |
+| `897c508` | **Feat: edit/delete task ใน Backlog** — เพิ่ม inline edit (ชื่อ + stepper 🍅) + ปุ่ม 🗑 ใน BacklogView (parity กับ Schedule, reuse `handleEditTask`/`handleDeleteTask`) · handler reload ทั้ง tasks+backlog → sync 2 list |
 
 > **Build Log — ฟีเจอร์ Room (commit + push prod แล้ว · 2026-05-30):**
 > - ✅ **แก้ bug 3 จุด:** (1) *infinite fetch loop* → `useMemo` ครอบ `roomHeaders`  (2) *session โหลดผิดห้อง* → effect รอจน `roomId` พร้อม  (3) *noti แจ้งเตือนเด้งรัวๆ* (ticker ยิง expire ซ้ำตอน API ช้า) → in-flight guard ใน `triggerExpire` (พิสูจน์: เด้ง 1 ครั้ง เดิม ~5)
@@ -533,6 +539,6 @@ Project Overview · QA Artifacts Summary · Skills Demonstrated · Lessons Learn
 
 ---
 
-*Next (จากสถานะจริง 2026-06-09): Pomodachi ใช้งานจริงบน prod ทุกวัน — Round 3 ปิด bug จาก use-case จริงครบ (timer ค้างบนมือถือ, multi-device sync session/task/settings, finish-early, wake lock, mobile audio, cadence/advance/reorder, clampDuration) → **ทุกฟีเจอร์ที่วางแผน + เสถียรพอใช้จริง** · ก้าวต่อไปคือ **Phase 2 QA** (Manual → E2E → Integration → Unit + CI + Allure) — พระเอกของ portfolio SDET, ยังไม่เริ่ม · งานเล็กค้าง: reset Google/Turso secrets (เคยโผล่ตอน setup), publish OAuth ออกจาก Testing mode (เมื่อพร้อมเปิดสาธารณะ), Stretch B (TTL auto-cleanup ห้องร้าง)*
+*Next (จากสถานะจริง 2026-06-10): Pomodachi ใช้งานจริงบน prod ทุกวัน — Round 4 ปิด loop รายวัน (archive + auto จบวันเที่ยงคืน), เพิ่มประวัติ (แท็บ Stats: ค่าเฉลี่ย/วัน + คลิกดู task รายวัน, derive จาก `Task.doneDate`), backlog edit/delete, scrollbar เนียน → **ฟีเจอร์ product ครบวง + เสถียรพอใช้จริง** · ก้าวต่อไปคือ **Phase 2 QA** (Manual → E2E → Integration → Unit + CI + Allure) — พระเอกของ portfolio SDET, ยังไม่เริ่ม · งานเล็กค้าง: ลบ dead code `DaySummary.tsx`, reset Google/Turso secrets (เคยโผล่ตอน setup), publish OAuth ออกจาก Testing mode (เมื่อพร้อมเปิดสาธารณะ), Stretch B (TTL auto-cleanup ห้องร้าง)*
 
 > **บทเรียน Round 3 (เพิ่มสำหรับสัมภาษณ์):** local เขียว ≠ prod เขียว ≠ **มือถือจริงใช้ได้** — bug ที่หนักสุดมาจาก device/network/clock จริง ไม่ใช่ logic · เครื่องมือที่ปิดเคสได้: build stamp ยืนยันเวอร์ชัน + on-device debug overlay + การแยก optimistic-display ออกจาก network-sync (local-first) · sync ข้ามเครื่องที่ถูกคือ "server เป็น source of truth, re-fetch on focus" ไม่ใช่ push realtime (over-engineer สำหรับ scope นี้)
