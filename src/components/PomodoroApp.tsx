@@ -325,6 +325,26 @@ export function PomodoroApp() {
   const handlePriorityUp = (taskId: number) => moveTask(taskId, "up");
   const handlePriorityDown = (taskId: number) => moveTask(taskId, "down");
 
+  /** ลากเรียงใหม่ทั้งชุด (orderedIds = บน→ล่าง) → reassign priority แบบ distinct (len..1)
+   *  PATCH เฉพาะตัวที่ค่าเปลี่ยน · ใช้ scheme เดียวกับ moveTask (priority desc) */
+  async function handleReorder(orderedIds: number[]) {
+    const len = orderedIds.length;
+    await Promise.all(
+      orderedIds.map((id, idx) => {
+        const newPriority = len - idx;
+        const t = tasks.find((x) => x.id === id);
+        if (t && t.priority === newPriority) return null;
+        return fetch(`/api/tasks/${id}`, {
+          method: "PATCH",
+          headers: roomHeaders,
+          body: JSON.stringify({ priority: newPriority }),
+        });
+      })
+    );
+    await loadTasks();
+    await generateSchedule();
+  }
+
   /** ปักวัน / เคลียร์วันให้ task ใน backlog */
   async function handleScheduleTask(taskId: number, isoDate: string | null) {
     await fetch(`/api/tasks/${taskId}`, {
@@ -557,6 +577,7 @@ export function PomodoroApp() {
                 onSelect={handleSelectAndStart}
                 onPriorityUp={handlePriorityUp}
                 onPriorityDown={handlePriorityDown}
+                onReorder={handleReorder}
                 onEdit={handleEditTask}
                 onMoveToBacklog={handleMoveToBacklog}
                 onDelete={handleDeleteTask}
