@@ -78,6 +78,12 @@ if (await tableExists("Task")) {
   } else {
     await run("ADD COLUMN Task.scheduledFor", `ALTER TABLE "Task" ADD COLUMN "scheduledFor" DATETIME`);
   }
+  // doneDate — วันที่ขีดฆ่า (task → done, YYYY-MM-DD local) = วันที่เสร็จจริง · แหล่งเดียวของสถิติรายวัน
+  if (cols.includes("doneDate")) {
+    console.log(`✓ Task.doneDate มีอยู่แล้ว — ข้าม`);
+  } else {
+    await run("ADD COLUMN Task.doneDate", `ALTER TABLE "Task" ADD COLUMN "doneDate" TEXT`);
+  }
 }
 
 // 1.7) RoomSetting (settings ต่อห้อง — sync ข้าม device)
@@ -93,24 +99,8 @@ await run(
   )`
 );
 
-// 1.8) DaySummary (สถิติยอดรายวัน — snapshot ตอนปิดวัน)
-await run(
-  "create DaySummary",
-  `CREATE TABLE IF NOT EXISTS "DaySummary" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    "roomId" TEXT NOT NULL DEFAULT 'default',
-    "date" TEXT NOT NULL,
-    "totalPomodoros" INTEGER NOT NULL DEFAULT 0,
-    "tasksDone" INTEGER NOT NULL DEFAULT 0,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-  )`
-);
-await run(
-  "unique DaySummary(roomId,date)",
-  `CREATE UNIQUE INDEX IF NOT EXISTS "DaySummary_roomId_date_key" ON "DaySummary"("roomId", "date")`
-);
-await run("index DaySummary.roomId", `CREATE INDEX IF NOT EXISTS "DaySummary_roomId_idx" ON "DaySummary"("roomId")`);
+// (DaySummary ถูกถอดออก — สถิติ derive จาก Task.doneDate แทน · ตาราง DaySummary บน prod
+//  ถ้ามีค้างจากเวอร์ชันก่อนหน้า drop ทิ้งได้ด้วย `turso db shell <db> "DROP TABLE IF EXISTS DaySummary"`)
 
 // 2) index บน roomId
 await run("index Task.roomId", `CREATE INDEX IF NOT EXISTS "Task_roomId_idx" ON "Task"("roomId")`);

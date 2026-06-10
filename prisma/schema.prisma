@@ -17,8 +17,9 @@ model Task {
   priority            Int           @default(0)
   estimatedPomodoros  Int           @default(1)
   completedPomodoros  Int           @default(0)
-  status              String        @default("pending") // pending | in-progress | done | backlog
+  status              String        @default("pending") // pending | in-progress | done | backlog | archived
   scheduledFor        DateTime?     // backlog task ปักวันได้ · ถึงวัน → auto-promote เป็น pending
+  doneDate            String?       // YYYY-MM-DD (local) วันที่ขีดฆ่า (task → done) = วันที่เสร็จจริง · แหล่งเดียวของสถิติรายวัน
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
   slots               ScheduleSlot[]
@@ -48,22 +49,6 @@ model RoomSetting {
   longBreakMinutes      Int      @default(15)
   pomodorosPerLongBreak Int      @default(4)
   updatedAt             DateTime @updatedAt
-}
-
-// สรุปยอดรายวัน (snapshot ตอนปิดวัน: กดเคลียร์ / จบวัน / auto-midnight)
-// date = วัน "ที่ถูกปิด" (YYYY-MM-DD local) ไม่ใช่เวลาที่ archive → ตัวเลขแม่นแม้ auto-midnight มาทำวันถัดไป
-// upsert แบบ increment: ปิดวันเดียวกันหลายครั้ง → ยอดสะสมรวมกัน
-model DaySummary {
-  id             Int      @id @default(autoincrement())
-  roomId         String   @default("default")
-  date           String // YYYY-MM-DD (local)
-  totalPomodoros Int      @default(0)
-  tasksDone      Int      @default(0)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  @@unique([roomId, date])
-  @@index([roomId])
 }
 
 model ScheduleSlot {

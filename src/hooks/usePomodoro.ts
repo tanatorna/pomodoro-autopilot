@@ -145,7 +145,16 @@ export function usePomodoro(
     // ── network sync (best-effort, guarded แยกเฉพาะ network) ──
     if (expiringRef.current) return; // มี expire ค้างอยู่ → ข้าม (local ขยับไปแล้ว ไม่ค้าง)
     expiringRef.current = true;
-    callSessionAPI({ action: "expire", durations: durationsRef.current }, headersRef.current)
+    // doneDate = วันที่ (local) ของ "ตอนลูก pomodoro จบจริง" (endsAt) ไม่ใช่ตอนยิง request
+    // → ถ้า process expire หลังเที่ยงคืนของลูกที่จบก่อนเที่ยงคืน ยังลงวันถูก
+    callSessionAPI(
+      {
+        action: "expire",
+        durations: durationsRef.current,
+        doneDate: new Date(endsAtKey).toLocaleDateString("en-CA"),
+      },
+      headersRef.current
+    )
       .then((next) => {
         syncClock(next.serverNow);
         // reconcile เฉพาะเมื่อ server ขยับไป state ใหม่ (server-clamp การันตีขยับ)
@@ -353,7 +362,11 @@ export function usePomodoro(
   const handleFinishEarly = useCallback(async () => {
     primeAudio();
     const next = await callSessionAPI(
-      { action: "finishEarly", durations: durationsRef.current },
+      {
+        action: "finishEarly",
+        durations: durationsRef.current,
+        doneDate: new Date().toLocaleDateString("en-CA"),
+      },
       headersRef.current
     );
     applyState(next);

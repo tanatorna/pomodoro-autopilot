@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Task, DaySummary } from "@/generated/prisma/client";
+import type { Task } from "@/generated/prisma/client";
 import { usePomodoro } from "@/hooks/usePomodoro";
 import { useSettings } from "@/hooks/useSettings";
 import { formatTime } from "@/engine/timeMath";
@@ -11,7 +11,7 @@ import { AccountButton } from "./AccountButton";
 import { Timer } from "./Timer";
 import { ScheduleMain } from "./ScheduleMain";
 import { BacklogView } from "./BacklogView";
-import { StatsView } from "./StatsView";
+import { StatsView, type DayStat } from "./StatsView";
 import { SettingsPanel } from "./SettingsPanel";
 import { InterruptButton } from "./InterruptButton";
 import { RoomBadge } from "./RoomBadge";
@@ -21,7 +21,7 @@ type SidePanel = "schedule" | "backlog" | "stats" | "settings";
 const PANEL_LABELS: Record<SidePanel, string> = {
   schedule: "Schedule",
   backlog: "Backlog",
-  stats: "สถิติ",
+  stats: "Stats",
   settings: "Setting",
 };
 
@@ -59,7 +59,7 @@ export function PomodoroApp() {
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [backlog, setBacklog] = useState<Task[]>([]);
-  const [stats, setStats] = useState<DaySummary[]>([]);
+  const [stats, setStats] = useState<DayStat[]>([]);
   const [panel, setPanel] = useState<SidePanel>("schedule");
   const [endingDay, setEndingDay] = useState(false);
   const [clearing, setClearing] = useState(false);
@@ -105,8 +105,19 @@ export function PomodoroApp() {
   const loadStats = useCallback(async () => {
     if (!roomId) return;
     const res = await fetch("/api/stats", { headers: roomHeaders });
-    setStats((await res.json()) as DaySummary[]);
+    setStats((await res.json()) as DayStat[]);
   }, [roomId, roomHeaders]);
+
+  const loadDayTasks = useCallback(
+    async (date: string) => {
+      if (!roomId) return [];
+      const res = await fetch(`/api/stats/day?date=${encodeURIComponent(date)}`, {
+        headers: roomHeaders,
+      });
+      return (await res.json()) as { id: number; title: string; completedPomodoros: number; estimatedPomodoros: number }[];
+    },
+    [roomId, roomHeaders]
+  );
 
   useEffect(() => {
     if (!roomId) return;
@@ -150,8 +161,7 @@ export function PomodoroApp() {
       await fetch("/api/tasks/archive", {
         method: "POST",
         headers: roomHeaders,
-        // date = วันที่ "กำลังปิด" (last = เมื่อวาน) → สถิติลงวันที่ถูกต้อง ไม่ใช่วันนี้
-        body: JSON.stringify({ resetSession: true, date: last }),
+        body: JSON.stringify({ resetSession: true }),
       });
       await Promise.all([loadTasks(), loadBacklog(), generateSchedule(), refresh(), loadStats()]);
       showToast("🌙 ขึ้นวันใหม่ — เก็บ task ที่เสร็จเข้าคลังให้แล้ว");
@@ -355,15 +365,10 @@ export function PomodoroApp() {
   }
 
   /** เก็บ task ที่เสร็จแล้วเข้าคลัง (status → archived) → หายจาก Schedule · ไม่แตะ task ค้าง/timer
-   *  บันทึกยอดลงสถิติของ "วันนี้" (local date) ก่อน archive */
+   *  (สถิติไม่กระทบ — ยอดรายวัน derive จาก doneDate ที่ stamp ตอนขีดฆ่าไปแล้ว) */
   async function handleClearDone() {
     setClearing(true);
-    const today = new Date().toLocaleDateString("en-CA");
-    const res = await fetch("/api/tasks/archive", {
-      method: "POST",
-      headers: roomHeaders,
-      body: JSON.stringify({ date: today }),
-    });
+    const res = await fetch("/api/tasks/archive", { method: "POST", headers: roomHeaders });
     const data = (await res.json().catch(() => null)) as { archived?: number } | null;
     await Promise.all([loadTasks(), generateSchedule(), loadStats()]);
     setClearing(false);
@@ -571,7 +576,7 @@ export function PomodoroApp() {
               />
             )}
 
-            {panel === "stats" && <StatsView days={stats} />}
+            {panel === "stats" && <StatsView days={stats} onLoadDay={loadDayTasks} />}
 
             {panel === "settings" && (
               <SettingsPanel

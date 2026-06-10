@@ -52,10 +52,10 @@ type SessionAction =
   | { action: "pause" }
   | { action: "resume" }
   | { action: "restart"; durations?: Partial<DurationConfig> }
-  | { action: "expire"; durations?: Partial<DurationConfig> }
+  | { action: "expire"; durations?: Partial<DurationConfig>; doneDate?: string }
   | { action: "switch"; taskId: number; durations?: Partial<DurationConfig> }
   | { action: "skip"; durations?: Partial<DurationConfig> }
-  | { action: "finishEarly"; durations?: Partial<DurationConfig> }
+  | { action: "finishEarly"; durations?: Partial<DurationConfig>; doneDate?: string }
   | { action: "clampDuration"; durations?: Partial<DurationConfig> };
 
 export async function POST(request: Request) {
@@ -120,6 +120,8 @@ export async function POST(request: Request) {
             data: {
               completedPomodoros: nextCompleted,
               status: taskBecameDone ? "done" : task.status,
+              // stamp วันที่เสร็จจริง (local date จาก client) ตอนขีดฆ่า → ใช้ทำสถิติรายวัน
+              ...(taskBecameDone && body.doneDate ? { doneDate: body.doneDate } : {}),
             },
           });
         }
@@ -207,7 +209,11 @@ export async function POST(request: Request) {
           }
           await prisma.task.update({
             where: { id: task.id },
-            data: { completedPomodoros: task.completedPomodoros + 1, status: "done" },
+            data: {
+              completedPomodoros: task.completedPomodoros + 1,
+              status: "done",
+              ...(body.doneDate ? { doneDate: body.doneDate } : {}),
+            },
           });
         }
       }
