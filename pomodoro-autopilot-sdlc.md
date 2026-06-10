@@ -137,7 +137,7 @@
 
 #### 🧩 D. Component → ไฟล์ (อ้างอิงให้ designer/dev คุยกัน)
 `PomodoroApp` (layout) · `Timer` · `ScheduleMain` (task list+form+สรุปวันนี้) · `TaskForm` · `BacklogView` · `StatsView` (สถิติรายวัน) · `SettingsPanel` · `InterruptButton` · `RoomBadge` · `AccountButton`
-> ⚠️ *Dead code: `DaySummary.tsx` (component สรุปวันเก่า) ไม่ถูก import แล้ว — summary ย้ายเข้า `ScheduleMain` footer · ควรลบทิ้ง (ยังไม่ลบ)*
+> *(สรุปวันนี้ย้ายเข้า `ScheduleMain` footer แล้ว — component `DaySummary.tsx` เก่าถูกลบทิ้ง 2026-06-10)*
 
 #### 🌙 E. Visual ปัจจุบัน + จุดที่อยากให้ designer ช่วยขัด
 - **ธีม Ember:** พื้นหลังกระดาษอุ่น (`.ember-bg` ครีม→ดินเผา) + `.paper-panel` (กระจกฝ้าบางๆ) + accent **terracotta `#c15f3c`** · break: sage/teal · ฟอนต์ Newsreader (serif/timer) + IBM Plex Sans Thai
@@ -539,6 +539,6 @@ Project Overview · QA Artifacts Summary · Skills Demonstrated · Lessons Learn
 
 ---
 
-*Next (จากสถานะจริง 2026-06-10): Pomodachi ใช้งานจริงบน prod ทุกวัน — Round 4 ปิด loop รายวัน (archive + auto จบวันเที่ยงคืน), เพิ่มประวัติ (แท็บ Stats: ค่าเฉลี่ย/วัน + คลิกดู task รายวัน, derive จาก `Task.doneDate`), backlog edit/delete, scrollbar เนียน → **ฟีเจอร์ product ครบวง + เสถียรพอใช้จริง** · ก้าวต่อไปคือ **Phase 2 QA** (Manual → E2E → Integration → Unit + CI + Allure) — พระเอกของ portfolio SDET, ยังไม่เริ่ม · งานเล็กค้าง: ลบ dead code `DaySummary.tsx`, reset Google/Turso secrets (เคยโผล่ตอน setup), publish OAuth ออกจาก Testing mode (เมื่อพร้อมเปิดสาธารณะ), Stretch B (TTL auto-cleanup ห้องร้าง)*
+*Next (จากสถานะจริง 2026-06-10): Pomodachi ใช้งานจริงบน prod ทุกวัน — Round 4 ปิด loop รายวัน (archive + auto จบวันเที่ยงคืน), เพิ่มประวัติ (แท็บ Stats: ค่าเฉลี่ย/วัน + คลิกดู task รายวัน, derive จาก `Task.doneDate`), backlog edit/delete, scrollbar เนียน → **ฟีเจอร์ product ครบวง + เสถียรพอใช้จริง** · ก้าวต่อไปคือ **Phase 2 QA** (Manual → E2E → Integration → Unit + CI + Allure) — พระเอกของ portfolio SDET, ยังไม่เริ่ม · งานเล็กค้าง: reset Google/Turso secrets (เคยโผล่ตอน setup), publish OAuth ออกจาก Testing mode (เมื่อพร้อมเปิดสาธารณะ), Stretch B (TTL auto-cleanup ห้องร้าง)*
 
 > **บทเรียน Round 3 (เพิ่มสำหรับสัมภาษณ์):** local เขียว ≠ prod เขียว ≠ **มือถือจริงใช้ได้** — bug ที่หนักสุดมาจาก device/network/clock จริง ไม่ใช่ logic · เครื่องมือที่ปิดเคสได้: build stamp ยืนยันเวอร์ชัน + on-device debug overlay + การแยก optimistic-display ออกจาก network-sync (local-first) · sync ข้ามเครื่องที่ถูกคือ "server เป็น source of truth, re-fetch on focus" ไม่ใช่ push realtime (over-engineer สำหรับ scope นี้)
