@@ -175,3 +175,32 @@
   from { opacity: 0; transform: translateX(-50%) translateY(12px) scale(0.96); }
   to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
 }
+
+/* ─── Scrollbar: บาง กลืนกับธีม (global plain CSS — emit ชัวร์บน Tailwind v4) ─── */
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 80, 40, 0.22) transparent;
+}
+/* WebKit/Chromium — track ใส, thumb โปร่งสี terracotta-brown โค้งมน, padding ให้ดูบาง */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgba(120, 80, 40, 0.2);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(120, 80, 40, 0.4);
+  background-clip: padding-box;
+}
+/* กันมุมขาวตรงที่ scrollbar แนวตั้ง+แนวนอนมาเจอกัน */
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
