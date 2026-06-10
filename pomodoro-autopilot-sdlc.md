@@ -120,7 +120,7 @@
 | J2 | **โฟกัส/พักอัตโนมัติ** | กด "เริ่ม"/"เลือก" task → WORK 25:00 → หมดเวลา (เสียง+noti) → BREAK อัตโนมัติ → task ถัดไป → ครบ 4 รอบ = LONG_BREAK |
 | J3 | **Pause / Resume / Restart** | หยุดชั่วคราว → เดินต่อ(ลูกเดิม) · เริ่มใหม่(reset 25:00 ไม่นับ) |
 | J4 | **แทรกงานด่วน** | กด Interrupt FAB → กรอกงาน → void ลูกปัจจุบัน + จัด schedule ใหม่ + เริ่มงานด่วนทันที |
-| J5 | **แก้ไข/ลบ task** | hover/ดับเบิลคลิก → แก้ชื่อ inline (Enter/blur เซฟ) · 🗑 ลบ (task ที่กำลังโฟกัส **ลบไม่ได้**) · ▲▼ ปรับ priority |
+| J5 | **แก้ไข/ลบ/จัดลำดับ task** | แก้ชื่อ+🍅 inline (ดับเบิลคลิก/✎) + 🗑 ลบ → **ทำได้ทั้ง Schedule + Backlog** (task ที่กำลังโฟกัส **ลบไม่ได้**) · จัดลำดับ (Schedule เท่านั้น): ▲▼ ทีละ 1 หรือ **กดค้าง+ลากการ์ด** (drag-reorder) · Backlog เรียงตามวันที่ปัก |
 | J6 | **จบวัน** | "จบวัน → ย้าย Backlog" → task ค้างไป Backlog + สรุปยอด 🍅 · Backlog: ดึง task กลับมาทำได้ |
 | J7 | **ตั้งค่าเวลา** | แท็บ Settings → ปรับ WORK/BREAK/LONG_BREAK (number + ปุ่ม ±) |
 | J8 | **Room (จัดการห้อง)** | 🔑 → **แก้รหัสห้อง** (เช็คซ้ำ live: ✓ว่าง/✗มีคนใช้) · **+ สร้างห้องใหม่** · **เข้าห้องอื่น** (ใส่ code) · **ลบห้อง** (confirm 2 ชั้น → ห้องเปล่าใหม่) · **copy link** แชร์ |
@@ -270,8 +270,9 @@ Scenario: Interrupt (flow แยก)
 | ส่วน | เครื่องมือ |
 |---|---|
 | Language | TypeScript (Node.js) |
-| Framework | Next.js (App Router) |
-| DB / ORM | Prisma + SQLite |
+| Framework | Next.js (App Router) + React 19 |
+| DB / ORM | Prisma + **SQLite (local) / Turso libSQL (prod)** via adapter |
+| UI / libs | Tailwind v4 · Auth.js v5 (Google OAuth) · **@dnd-kit** (drag-reorder) · Web Audio/Notification/Wake Lock APIs |
 | Unit | Jest (+ fake timers) |
 | Integration / API | Supertest + Axios + Zod |
 | E2E | Cypress **และ** Playwright |
