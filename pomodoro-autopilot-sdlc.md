@@ -74,7 +74,7 @@
 - **Screen Wake Lock + mobile audio** — จอไม่ดับระหว่างโฟกัส (Wake Lock API) · ปลดล็อกเสียง alarm บนมือถือด้วย AudioContext singleton ที่ prime ตอน user gesture (start/resume/switch/skip)
 - **Sync-error toast** — session API ล้มเหลว = เด้ง toast แทนเงียบๆ (ไม่ปล่อยให้ timer ค้างแบบไม่รู้สาเหตุ)
 - **Archive task ที่เสร็จ + auto จบวันเที่ยงคืน** — ปุ่ม 🧹 เก็บ task ที่เสร็จเข้าคลัง (status `archived`, ซ่อนจาก Schedule แต่เก็บใน DB) · ข้ามวันแล้วเปิดแอป = auto archive + reset timer, task ค้างยกมาวันใหม่
-- **Dashboard สถิติรายวัน** — แท็บ 📊 สถิติ: ยอด 🍅/task รายวัน + แท่งสัดส่วน + สรุปรวม (`DaySummary` snapshot ตอนปิดวัน, ลงวันที่ถูกต้องแม้ auto-midnight)
+- **Dashboard สถิติรายวัน** — แท็บ 📊 Stats: ยอด 🍅/task รายวัน + แท่งสัดส่วน + สรุปรวม · คลิกวัน → กางดู task ของวันนั้น (derive จาก `Task.doneDate` = วันที่ขีดฆ่า/เสร็จจริง)
 
 ### OUT — Future Work (เขียนเป็น Roadmap ใน README)
 - Line Bot notification (แก้ปัญหา mobile-background reliability)
@@ -162,7 +162,7 @@
    External (Line, Notion) = Future → mock เมื่อเพิ่ม
 ```
 
-> **Models:** `Session` (endsAt/state/completedPomodoros/currentTaskId) · `Task` (estimatedPomodoros/completedPomodoros/status/scheduledFor/priority) · `ScheduleSlot` · `RoomSetting` (work/short/long/perLong นาที, per-room) · `DaySummary` (ยอดรายวัน, `@@unique([roomId,date])`) · `User`/`Account` (auth) — ทุกตาราง scope ด้วย `roomId` + `@@index([roomId])`
+> **Models:** `Session` (endsAt/state/completedPomodoros/currentTaskId) · `Task` (estimatedPomodoros/completedPomodoros/status/scheduledFor/priority) · `ScheduleSlot` · `RoomSetting` (work/short/long/perLong นาที, per-room) · `User`/`Account` (auth) — ทุกตาราง scope ด้วย `roomId` + `@@index([roomId])` · **สถิติรายวันไม่มีตารางแยก — derive จาก `Task.doneDate`** (groupBy)
 > **Client sync layer (Round 3):** `usePomodoro` = local-first engine (optimistic `tick()` + clock-offset + `Promise.race` timeout) · `useSettings(roomHeaders)` = server-source-of-truth + localStorage cache · re-fetch on `visibilitychange→visible` (session + tasks + backlog + settings)
 
 **หลักการ timer:** เก็บ `endsAt` (timestamp) ไม่ใช่นับ tick → คำนวณ `remaining` จากเวลาจริงทุก tick และตอน `visibilitychange`/refocus เพื่อ catch-up ให้ถูกแม้ tab ถูก throttle
@@ -393,7 +393,8 @@ Slice 4 ✅ Backlog + End-of-day summary      → api/backlog, BacklogView, DayS
 | `f24d4c2`, `a27df8f` | **Settings sync per-room:** `RoomSetting` model + `GET/PATCH /api/settings` (clamp ค่า) · `useSettings(roomHeaders)` server-as-source-of-truth, localStorage แค่ cache · migrate-turso validate token เป็น JWT จริง |
 | `96dc1a2` | **Fix:** phase ที่กำลังเดินยาวเกิน setting (เช่น break 11:21 เมื่อ setting=5) → action `clampDuration` หดให้ตรง setting · self-heal effect ใน client เรียกเมื่อ `remainingMs > duration+1500` · no-op ถ้าเหลือ ≤ duration |
 | `(2026-06-10)` | **Feat: Archive task ที่เสร็จ + auto จบวันเที่ยงคืน** — status ใหม่ `archived` (zero migration, status เป็น String) · GET /api/tasks กรอง archived+backlog ออก · `POST /api/tasks/archive` (bulk done→archived, `updatedAt` = เวลาเก็บ → raw data เผื่อทำ stat รายวัน) · ปุ่ม "🧹 เก็บ task ที่เสร็จเข้าคลัง (N)" โผล่เมื่อมี task done · **auto จบวันเที่ยงคืน:** detect date rollover ผ่าน localStorage `pomodachi:lastDate:<roomId>` (on load + visibility) → archive done + reset timer · task ค้าง/รันคงเป็น pending ยกมาวันใหม่ · idempotent (ไม่ทำซ้ำในวันเดียว, ไม่ archive ตอน load แรก) |
-| `(2026-06-10)` | **Feat: Dashboard สถิติรายวัน (Phase 3)** — แท็บที่ 4 "📊 สถิติ" (`StatsView`) แสดงยอดรายวัน (🍅/✓task) + แท่งสัดส่วน + วันที่ไทย + สรุปรวม · model `DaySummary` (`@@unique([roomId,date])`) · `POST /api/tasks/archive` snapshot ก่อน archive: นับ done + sum completedPomodoros → **upsert แบบ increment** (เคลียร์ซ้ำวันเดียวยอดสะสม) · **`date` = วัน "ที่ถูกปิด" ส่งจาก client** (ไม่ใช่เวลา archive) → auto-midnight ลงยอดเมื่อวานให้ถูกวัน · `GET /api/stats` คืน 60 วันล่าสุด · migrate-turso เพิ่ม DaySummary (รัน prod แล้ว ✅) |
+| `(2026-06-10)` | **Feat: Dashboard สถิติรายวัน (Phase 3)** — แท็บที่ 4 "📊 Stats" (`StatsView`) แสดงยอดรายวัน (🍅/✓task) + แท่งสัดส่วน + วันที่ไทย + สรุปรวม · **คลิก card วัน → กาง accordion ดู task ของวันนั้น** (lazy-load + cache, `GET /api/stats/day?date=`) · `GET /api/stats` = `groupBy(doneDate)` · *(เดิมลองทำด้วย `DaySummary` snapshot + `archivedDate` แต่ pivot ทิ้ง — ดู row ถัดไป)* |
+| `(2026-06-10)` | **Refactor: สถิติ derive จาก `Task.doneDate` (วันเสร็จจริง)** — แทน DaySummary snapshot · stamp `doneDate` (local YYYY-MM-DD) ตอน **ขีดฆ่า** (task → done) ใน `/api/session` 2 จุด: `expire` ใช้ local date ของ `endsAt` (เวลาลูกจบจริง — ทน process หลังเที่ยงคืน) · `finishEarly` ใช้ now · client ส่ง `doneDate` มากับ body · **วันเสร็จ intrinsic กับ task → คงอยู่แม้ archive ทีหลัง** (task เสร็จวันนี้ เคลียร์พรุ่งนี้ ยังนับเป็นวันนี้) · ถอด `DaySummary` model/table + `archivedDate` + snapshot/increment/date-passing ทิ้ง (โค้ดสั้นลง) · drop ตาราง DaySummary บน prod · migrate-turso เพิ่ม `Task.doneDate` (รัน prod แล้ว ✅) |
 
 > **Build Log — ฟีเจอร์ Room (commit + push prod แล้ว · 2026-05-30):**
 > - ✅ **แก้ bug 3 จุด:** (1) *infinite fetch loop* → `useMemo` ครอบ `roomHeaders`  (2) *session โหลดผิดห้อง* → effect รอจน `roomId` พร้อม  (3) *noti แจ้งเตือนเด้งรัวๆ* (ticker ยิง expire ซ้ำตอน API ช้า) → in-flight guard ใน `triggerExpire` (พิสูจน์: เด้ง 1 ครั้ง เดิม ~5)
