@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Task } from "@/generated/prisma/client";
+import type { Task, DaySummary } from "@/generated/prisma/client";
 import { usePomodoro } from "@/hooks/usePomodoro";
 import { useSettings } from "@/hooks/useSettings";
 import { formatTime } from "@/engine/timeMath";
@@ -11,15 +11,17 @@ import { AccountButton } from "./AccountButton";
 import { Timer } from "./Timer";
 import { ScheduleMain } from "./ScheduleMain";
 import { BacklogView } from "./BacklogView";
+import { StatsView } from "./StatsView";
 import { SettingsPanel } from "./SettingsPanel";
 import { InterruptButton } from "./InterruptButton";
 import { RoomBadge } from "./RoomBadge";
 
-type SidePanel = "schedule" | "backlog" | "settings";
+type SidePanel = "schedule" | "backlog" | "stats" | "settings";
 
 const PANEL_LABELS: Record<SidePanel, string> = {
   schedule: "Schedule",
   backlog: "Backlog",
+  stats: "สถิติ",
   settings: "Setting",
 };
 
@@ -57,6 +59,7 @@ export function PomodoroApp() {
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [backlog, setBacklog] = useState<Task[]>([]);
+  const [stats, setStats] = useState<DaySummary[]>([]);
   const [panel, setPanel] = useState<SidePanel>("schedule");
   const [endingDay, setEndingDay] = useState(false);
   const [clearing, setClearing] = useState(false);
@@ -99,11 +102,23 @@ export function PomodoroApp() {
     await fetch("/api/schedule", { method: "POST", headers: roomHeaders });
   }, [roomId, roomHeaders]);
 
+  const loadStats = useCallback(async () => {
+    if (!roomId) return;
+    const res = await fetch("/api/stats", { headers: roomHeaders });
+    setStats((await res.json()) as DaySummary[]);
+  }, [roomId, roomHeaders]);
+
   useEffect(() => {
     if (!roomId) return;
     void loadTasks();
     void loadBacklog();
-  }, [roomId, loadTasks, loadBacklog]);
+    void loadStats();
+  }, [roomId, loadTasks, loadBacklog, loadStats]);
+
+  // เปิดแท็บสถิติ → refresh (เผื่อ device อื่นปิดวันไปแล้ว)
+  useEffect(() => {
+    if (panel === "stats") void loadStats();
+  }, [panel, loadStats]);
 
   // re-fetch task list + backlog ตอนสลับกลับมา device นี้ → task ตรงกันข้าม device
   // (คู่กับ session refresh ใน usePomodoro ที่ sync state ตอน visible)
@@ -135,9 +150,10 @@ export function PomodoroApp() {
       await fetch("/api/tasks/archive", {
         method: "POST",
         headers: roomHeaders,
-        body: JSON.stringify({ resetSession: true }),
+        // date = วันที่ "กำลังปิด" (last = เมื่อวาน) → สถิติลงวันที่ถูกต้อง ไม่ใช่วันนี้
+        body: JSON.stringify({ resetSession: true, date: last }),
       });
-      await Promise.all([loadTasks(), loadBacklog(), generateSchedule(), refresh()]);
+      await Promise.all([loadTasks(), loadBacklog(), generateSchedule(), refresh(), loadStats()]);
       showToast("🌙 ขึ้นวันใหม่ — เก็บ task ที่เสร็จเข้าคลังให้แล้ว");
     }
     try {
@@ -145,7 +161,7 @@ export function PomodoroApp() {
     } catch {
       /* noop */
     }
-  }, [roomId, roomHeaders, loadTasks, loadBacklog, generateSchedule, refresh, showToast]);
+  }, [roomId, roomHeaders, loadTasks, loadBacklog, generateSchedule, refresh, loadStats, showToast]);
 
   useEffect(() => {
     if (!roomId) return;
@@ -338,12 +354,18 @@ export function PomodoroApp() {
     );
   }
 
-  /** เก็บ task ที่เสร็จแล้วเข้าคลัง (status → archived) → หายจาก Schedule · ไม่แตะ task ค้าง/timer */
+  /** เก็บ task ที่เสร็จแล้วเข้าคลัง (status → archived) → หายจาก Schedule · ไม่แตะ task ค้าง/timer
+   *  บันทึกยอดลงสถิติของ "วันนี้" (local date) ก่อน archive */
   async function handleClearDone() {
     setClearing(true);
-    const res = await fetch("/api/tasks/archive", { method: "POST", headers: roomHeaders });
+    const today = new Date().toLocaleDateString("en-CA");
+    const res = await fetch("/api/tasks/archive", {
+      method: "POST",
+      headers: roomHeaders,
+      body: JSON.stringify({ date: today }),
+    });
     const data = (await res.json().catch(() => null)) as { archived?: number } | null;
-    await Promise.all([loadTasks(), generateSchedule()]);
+    await Promise.all([loadTasks(), generateSchedule(), loadStats()]);
     setClearing(false);
     showToast(`🧹 เก็บ ${data?.archived ?? 0} task ที่เสร็จเข้าคลังแล้ว`);
   }
@@ -499,7 +521,7 @@ export function PomodoroApp() {
 
           {/* Tab switcher */}
           <div className="flex border-b border-border shrink-0">
-            {(["schedule", "backlog", "settings"] as SidePanel[]).map((tab) => (
+            {(["schedule", "backlog", "stats", "settings"] as SidePanel[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setPanel(tab)}
@@ -548,6 +570,8 @@ export function PomodoroApp() {
                 onScheduleTask={handleScheduleTask}
               />
             )}
+
+            {panel === "stats" && <StatsView days={stats} />}
 
             {panel === "settings" && (
               <SettingsPanel
