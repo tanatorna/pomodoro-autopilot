@@ -66,7 +66,7 @@
 - **Configurable durations** — ตั้งเวลา WORK/BREAK/LONG_BREAK เองได้ (แท็บ Settings)
 - **Room** — แยกข้อมูลต่อผู้ใช้ + แชร์ห้องผ่านลิงก์ (สร้าง / แก้รหัส+เช็คซ้ำ / เข้าห้องอื่น / ลบห้อง)
 - **Login (optional Google sign-in)** — claim ห้อง + เข้าถึงข้ามเครื่อง (ไม่บังคับ login)
-- **Task edit / delete** — แก้ชื่อ + จำนวน 🍅 inline · ลบ task (กัน task ที่กำลังโฟกัสไม่ให้ลบ) · **ใช้ได้ทั้ง Schedule + Backlog** (UI/handler ชุดเดียวกัน, handler reload ทั้งสอง list)
+- **Task edit / delete / reorder** — แก้ชื่อ + จำนวน 🍅 inline · ลบ task (กัน task ที่กำลังโฟกัสไม่ให้ลบ) · **ใช้ได้ทั้ง Schedule + Backlog** · จัดลำดับใน Schedule: ▲▼ ทีละ 1 หรือ **กดค้าง+ลากการ์ด** (drag-reorder, @dnd-kit)
 - **Task picker ตอน IDLE (C2)** — preview "ถัดไป · &lt;task&gt;" + ปุ่ม "เปลี่ยน" ก่อนกดเริ่ม
 - **Switch/Skip task กลางลูก** — คลิก "เริ่ม" task อื่นใน list = switch · ปุ่ม "⏭ ข้าม" ใน timer = ไป next pending (ลูกที่ทิ้งไม่นับ, confirm 2 ชั้น)
 - **Defer to Backlog + scheduledFor** — task ใน Schedule กดปุ่ม 📥 ย้ายไป Backlog · Backlog ปักวันได้ (native date picker, แยก 2 section: มีกำหนด/ยังไม่กำหนด) · auto-promote ตอนถึงวันที่ปัก
@@ -92,25 +92,26 @@
 ทั้งวัน → เว็บเดินนาฬิกาเอง: WORK 25:00 → เตือน → BREAK 5:00 → เตือน → ลูกถัดไป
         ครบ 4 รอบ → LONG_BREAK 15–30:00
 แทรก   → กรอกงานด่วน → ระบบจัด schedule ที่เหลือใหม่
-จบวัน  → สรุป + task ค้าง → ย้าย Backlog
+จบวัน  → 🧹 เก็บ task ที่เสร็จเข้าคลัง · task ค้าง → Backlog (หรือ auto จบวันเที่ยงคืน)
+ทบทวน → แท็บ 📊 Stats: ค่าเฉลี่ย/วัน + ประวัติรายวัน (คลิกวันดู task ที่เสร็จ)
 ```
 > ข้อจำกัดที่ document ไว้: นาฬิกาเตือนได้ชัวร์เมื่อ tab เปิด/focus และ catch-up ถูกต้องเมื่อกลับมาที่ tab; กรณีมือถือล็อกจอ background = known limitation → แก้ด้วย Line integration ใน Roadmap (เป็น interview story)
 
 ---
 
-### 1.1 User Journeys & Use-Cases — สำหรับ Design Handoff (อัปเดต 2026-05-31)
+### 1.1 User Journeys & Use-Cases — สำหรับ Design Handoff (อัปเดต 2026-06-10)
 
-> สะท้อน **แอปจริงที่ deploy แล้ว** ครบทุกฟีเจอร์ปัจจุบัน · ใช้เป็นฐานออกแบบ UI/flow/states · ธีมปัจจุบัน = **Ember** (กระดาษ/ดินเผา terracotta) + layout **Split 50/50** (ตาม design handoff `design_handoff_ember_split`)
+> สะท้อน **แอปจริงที่ deploy แล้ว** ครบทุกฟีเจอร์ปัจจุบัน · ใช้เป็นฐานออกแบบ UI/flow/states · ธีมปัจจุบัน = **Glass/Mirror UI** (frosted glass บนภาพอินทีเรียอุ่น, accent terracotta) + layout **Split 60:40** (timer ซ้าย, panel ขวาเต็มความสูง)
 
 #### 🗺️ A. โครงหน้าจอ (Single-page)
 แอปเป็น **หน้าเดียว** ประกอบด้วย 4 โซน:
-1. **Header** — โลโก้ · ป้ายห้อง 🔑 (dropdown จัดการห้อง) · ปุ่ม/avatar บัญชี 👤
-2. **Timer (hero)** — badge สถานะ · ชื่อ task ที่ทำอยู่ · วงแหวนนับถอยหลัง · ปุ่มควบคุม
-3. **Side panel** — 3 แท็บ: **Schedule** (เพิ่ม+รายการ task), **Backlog**, **Settings**
+1. **Header** — โลโก้ 🍎 · ป้ายห้อง 🔑 (dropdown จัดการห้อง) · ปุ่ม/avatar บัญชี 👤
+2. **Timer (hero, ซ้าย ~60%)** — badge สถานะ · ชื่อ task ที่ทำอยู่ · วงแหวนนับถอยหลัง · ปุ่มควบคุม
+3. **Side panel (ขวา ~40%)** — **4 แท็บ**: **Schedule** (เพิ่ม+รายการ task+สรุปวันนี้), **Backlog**, **📊 Stats** (สถิติรายวัน), **Setting**
 4. **Interrupt FAB** — ปุ่มลอยมุมขวาล่าง (โผล่ตอน WORK/PAUSED)
 
 **Responsive:**
-- **Desktop (≥768px):** sidebar ซ้าย + timer กลาง
+- **Desktop (≥768px):** timer ซ้าย + panel ขวา (Split 60:40 บนพื้นรูป)
 - **Mobile (<768px):** stack แนวตั้ง — timer อยู่บนสุด, panel เลื่อนลงล่าง
 
 #### 🚶 B. User Journeys (ทุก flow ที่ทำได้จริง)
@@ -121,15 +122,20 @@
 | J3 | **Pause / Resume / Restart** | หยุดชั่วคราว → เดินต่อ(ลูกเดิม) · เริ่มใหม่(reset 25:00 ไม่นับ) |
 | J4 | **แทรกงานด่วน** | กด Interrupt FAB → กรอกงาน → void ลูกปัจจุบัน + จัด schedule ใหม่ + เริ่มงานด่วนทันที |
 | J5 | **แก้ไข/ลบ/จัดลำดับ task** | แก้ชื่อ+🍅 inline (ดับเบิลคลิก/✎) + 🗑 ลบ → **ทำได้ทั้ง Schedule + Backlog** (task ที่กำลังโฟกัส **ลบไม่ได้**) · จัดลำดับ (Schedule เท่านั้น): ▲▼ ทีละ 1 หรือ **กดค้าง+ลากการ์ด** (drag-reorder) · Backlog เรียงตามวันที่ปัก |
-| J6 | **จบวัน** | "จบวัน → ย้าย Backlog" → task ค้างไป Backlog + สรุปยอด 🍅 · Backlog: ดึง task กลับมาทำได้ |
-| J7 | **ตั้งค่าเวลา** | แท็บ Settings → ปรับ WORK/BREAK/LONG_BREAK (number + ปุ่ม ±) |
-| J8 | **Room (จัดการห้อง)** | 🔑 → **แก้รหัสห้อง** (เช็คซ้ำ live: ✓ว่าง/✗มีคนใช้) · **+ สร้างห้องใหม่** · **เข้าห้องอื่น** (ใส่ code) · **ลบห้อง** (confirm 2 ชั้น → ห้องเปล่าใหม่) · **copy link** แชร์ |
-| J9 | **Login (optional)** | กด Sign in → Google → avatar โผล่ · กด avatar → "ใช้ห้องนี้กับบัญชี" (claim) → login เครื่องอื่นเจอห้องเดิม · Sign out |
+| J6 | **Switch / Skip กลางลูก** | ขณะ WORK/PAUSED คลิก "เริ่ม" task อื่น = **switch** (confirm, ลูกที่ทิ้งไม่นับ) · ปุ่ม "⏭ ข้าม task นี้" ใน timer = **skip** ไป next pending (ลูกที่ทำเสร็จก่อนหน้ายังเก็บไว้) |
+| J7 | **จบ task ก่อนเวลา (finish early)** | ขณะ WORK กด "✓ เสร็จ task นี้" → นับลูกที่ทำอยู่ให้ task นี้เต็มลูก + mark done → เวลาที่เหลือเดินต่อให้ task ถัดไป (โชว์ "ต่อเวลา") |
+| J8 | **เก็บงาน / จบวัน** | ปุ่ม **🧹 เก็บ task ที่เสร็จเข้าคลัง** (archive, หายจาก Schedule) · ปุ่ม **🌙 จบวัน** = ย้าย task ค้างไป Backlog + reset · **auto จบวันเที่ยงคืน** (เปิดแอปข้ามวัน → เก็บ task เสร็จ + task ค้างยกมาวันใหม่) |
+| J9 | **Backlog / park งานอนาคต** | เก็บงานเข้า Backlog · **ปักวัน** (date picker → auto-promote เป็น today เมื่อถึงวัน) · ดึงกลับมาทำวันนี้ (↑) · Schedule กด 📥 ส่งกลับ Backlog |
+| J10 | **ดูสถิติ (Stats)** | แท็บ 📊 Stats → สรุปค่าเฉลี่ย 🍅/task ต่อวัน + ประวัติรายวัน (แท่งสัดส่วน) → **คลิกการ์ดวัน = กางดู task ที่เสร็จวันนั้น** |
+| J11 | **ตั้งค่าเวลา** | แท็บ Setting → ปรับ WORK/BREAK/LONG_BREAK + รอบ/long-break (number + ปุ่ม ±) · sync per-room ข้ามเครื่อง |
+| J12 | **Room (จัดการห้อง)** | 🔑 → **แก้รหัสห้อง** (เช็คซ้ำ live: ✓ว่าง/✗มีคนใช้) · **+ สร้างห้องใหม่** · **เข้าห้องอื่น** (ใส่ code) · **ลบห้อง** (confirm 2 ชั้น → ห้องเปล่าใหม่) · **copy link** แชร์ |
+| J13 | **Login (optional)** | กด Sign in → Google → avatar โผล่ · กด avatar → "ใช้ห้องนี้กับบัญชี" (claim) → login เครื่องอื่นเจอห้องเดิม · Sign out |
 
 #### 🎨 C. States ที่ต้องออกแบบ (designer checklist)
 - **Timer:** IDLE "พร้อมเริ่ม" / WORK "โฟกัส 🍅" / SHORT_BREAK "พักสั้น ☕" / LONG_BREAK "พักยาว 🛋️" / PAUSED "หยุดพัก ⏸" / loading "--:--"
-- **Task item:** ปกติ / **active** (ไฮไลต์ terracotta tint + จุดกะพริบ) / **done** (rank=✓ sage, ขีดฆ่า) / **editing** (inline input) / hover (โผล่ปุ่ม ✎ 🗑)
+- **Task item:** ปกติ / **active** (ไฮไลต์ terracotta tint + จุดกะพริบ) / **done** (rank=✓ sage, ขีดฆ่า) / **editing** (inline input) / **dragging** (ยกขึ้น, opacity ลด — Schedule) / hover (โผล่ปุ่ม ✎ 🗑)
 - **Task list:** ว่าง ("ยังไม่มี task — พิมพ์ด้านบน 👆") / มีรายการ
+- **Stats:** ว่าง ("ยังไม่มีสถิติ...") / มีข้อมูล (สรุปค่าเฉลี่ย + การ์ดรายวัน) / การ์ดกาง (list task ของวัน · วันเก่าก่อนมีฟีเจอร์ = "ไม่มีรายละเอียด")
 - **Room dropdown:** ปัจจุบัน(+แก้รหัส+copy) / สร้างใหม่ / เข้าห้องอื่น / danger zone ลบ(idle→confirm) · rename: checking/available/taken/invalid
 - **Account:** signed-out (ปุ่ม Sign in) / signed-in (avatar + dropdown: email, claim, sign out) / claimed vs not
 - **Feedback:** เสียง + Web Notification ตอนหมดเวลา · confirm dialogs · summary จบวัน
