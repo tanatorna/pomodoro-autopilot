@@ -73,6 +73,7 @@
 - **Multi-device sync** — กลับมา focus หน้าจอ (`visibilitychange→visible`) = re-fetch session + task list + backlog + settings จาก server เสมอ → 2 เครื่องเห็นตรงกัน · settings เก็บ **per-room ที่ server** (`RoomSetting` + `/api/settings`), localStorage เป็นแค่ cache
 - **Screen Wake Lock + mobile audio** — จอไม่ดับระหว่างโฟกัส (Wake Lock API) · ปลดล็อกเสียง alarm บนมือถือด้วย AudioContext singleton ที่ prime ตอน user gesture (start/resume/switch/skip)
 - **Sync-error toast** — session API ล้มเหลว = เด้ง toast แทนเงียบๆ (ไม่ปล่อยให้ timer ค้างแบบไม่รู้สาเหตุ)
+- **Archive task ที่เสร็จ + auto จบวันเที่ยงคืน** — ปุ่ม 🧹 เก็บ task ที่เสร็จเข้าคลัง (status `archived`, ซ่อนจาก Schedule แต่เก็บใน DB) · ข้ามวันแล้วเปิดแอป = auto archive + reset timer, task ค้างยกมาวันใหม่ · (วางรากฐานสำหรับ dashboard/stat รายวันในอนาคต)
 
 ### OUT — Future Work (เขียนเป็น Roadmap ใน README)
 - Line Bot notification (แก้ปัญหา mobile-background reliability)
@@ -390,6 +391,7 @@ Slice 4 ✅ Backlog + End-of-day summary      → api/backlog, BacklogView, DayS
 | `78eabb5`, `b6e652c` | **Multi-device sync:** re-fetch session + task list + backlog เมื่อ device กลับมา focus (`visibilitychange`) แก้ drift ข้ามเครื่อง |
 | `f24d4c2`, `a27df8f` | **Settings sync per-room:** `RoomSetting` model + `GET/PATCH /api/settings` (clamp ค่า) · `useSettings(roomHeaders)` server-as-source-of-truth, localStorage แค่ cache · migrate-turso validate token เป็น JWT จริง |
 | `96dc1a2` | **Fix:** phase ที่กำลังเดินยาวเกิน setting (เช่น break 11:21 เมื่อ setting=5) → action `clampDuration` หดให้ตรง setting · self-heal effect ใน client เรียกเมื่อ `remainingMs > duration+1500` · no-op ถ้าเหลือ ≤ duration |
+| `(2026-06-10)` | **Feat: Archive task ที่เสร็จ + auto จบวันเที่ยงคืน** — status ใหม่ `archived` (zero migration, status เป็น String) · GET /api/tasks กรอง archived+backlog ออก · `POST /api/tasks/archive` (bulk done→archived, `updatedAt` = เวลาเก็บ → raw data เผื่อทำ stat รายวัน) · ปุ่ม "🧹 เก็บ task ที่เสร็จเข้าคลัง (N)" โผล่เมื่อมี task done · **auto จบวันเที่ยงคืน:** detect date rollover ผ่าน localStorage `pomodachi:lastDate:<roomId>` (on load + visibility) → archive done + reset timer · task ค้าง/รันคงเป็น pending ยกมาวันใหม่ · idempotent (ไม่ทำซ้ำในวันเดียว, ไม่ archive ตอน load แรก) |
 
 > **Build Log — ฟีเจอร์ Room (commit + push prod แล้ว · 2026-05-30):**
 > - ✅ **แก้ bug 3 จุด:** (1) *infinite fetch loop* → `useMemo` ครอบ `roomHeaders`  (2) *session โหลดผิดห้อง* → effect รอจน `roomId` พร้อม  (3) *noti แจ้งเตือนเด้งรัวๆ* (ticker ยิง expire ซ้ำตอน API ช้า) → in-flight guard ใน `triggerExpire` (พิสูจน์: เด้ง 1 ครั้ง เดิม ~5)
