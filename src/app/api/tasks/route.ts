@@ -25,7 +25,8 @@ export async function GET(request: Request) {
   const roomId = getRoomId(request);
   await autoPromoteScheduled(roomId);
   const tasks = await prisma.task.findMany({
-    where: { roomId, status: { not: "backlog" } },
+    // archived = task ที่เสร็จแล้วถูกเก็บเข้าคลัง (ซ่อนจาก Schedule แต่ยังอยู่ใน DB เผื่อทำ stat)
+    where: { roomId, status: { notIn: ["backlog", "archived"] } },
     orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
   });
   return Response.json(tasks);

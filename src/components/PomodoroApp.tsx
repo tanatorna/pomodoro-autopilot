@@ -59,6 +59,7 @@ export function PomodoroApp() {
   const [backlog, setBacklog] = useState<Task[]>([]);
   const [panel, setPanel] = useState<SidePanel>("schedule");
   const [endingDay, setEndingDay] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   // ── confirm dialog สำหรับ switch/skip ──
   // kind=switch: เปลี่ยนไป task ใหม่ที่ระบุ · kind=skip: ข้ามไป task ถัดไปอัตโนมัติ
@@ -116,6 +117,45 @@ export function PomodoroApp() {
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [roomId, loadTasks, loadBacklog]);
+
+  // ─── Auto จบวันเที่ยงคืน ───────────────────
+  // จำวันล่าสุดที่ใช้งาน (localStorage ต่อห้อง) · เปิดแอป/สลับกลับมาแล้วข้ามวัน → auto เก็บ task
+  // ที่เสร็จเข้าคลัง + reset timer · task ค้าง/รันอยู่คงเป็น pending → ยกมาวันใหม่เอง
+  const checkDayRollover = useCallback(async () => {
+    if (!roomId) return;
+    const key = `pomodachi:lastDate:${roomId}`;
+    const today = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD (local) → เทียบ string ได้ตรง
+    let last: string | null = null;
+    try {
+      last = localStorage.getItem(key);
+    } catch {
+      /* localStorage ปิด → ข้าม auto (manual ยังใช้ได้) */
+    }
+    if (last && last < today) {
+      await fetch("/api/tasks/archive", {
+        method: "POST",
+        headers: roomHeaders,
+        body: JSON.stringify({ resetSession: true }),
+      });
+      await Promise.all([loadTasks(), loadBacklog(), generateSchedule(), refresh()]);
+      showToast("🌙 ขึ้นวันใหม่ — เก็บ task ที่เสร็จเข้าคลังให้แล้ว");
+    }
+    try {
+      localStorage.setItem(key, today);
+    } catch {
+      /* noop */
+    }
+  }, [roomId, roomHeaders, loadTasks, loadBacklog, generateSchedule, refresh, showToast]);
+
+  useEffect(() => {
+    if (!roomId) return;
+    void checkDayRollover();
+    function onVisible() {
+      if (document.visibilityState === "visible") void checkDayRollover();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [roomId, checkDayRollover]);
 
   // ─── Task actions ─────────────────────────
   async function handleAddTask(title: string, estimatedPomodoros: number) {
@@ -296,6 +336,16 @@ export function PomodoroApp() {
     showToast(
       `🌙 จบวันแล้ว${typeof moved === "number" ? ` — ย้าย ${moved} task ไป Backlog` : ""}`
     );
+  }
+
+  /** เก็บ task ที่เสร็จแล้วเข้าคลัง (status → archived) → หายจาก Schedule · ไม่แตะ task ค้าง/timer */
+  async function handleClearDone() {
+    setClearing(true);
+    const res = await fetch("/api/tasks/archive", { method: "POST", headers: roomHeaders });
+    const data = (await res.json().catch(() => null)) as { archived?: number } | null;
+    await Promise.all([loadTasks(), generateSchedule()]);
+    setClearing(false);
+    showToast(`🧹 เก็บ ${data?.archived ?? 0} task ที่เสร็จเข้าคลังแล้ว`);
   }
 
   // ─── Interrupt ────────────────────────────
@@ -485,6 +535,8 @@ export function PomodoroApp() {
                 onDelete={handleDeleteTask}
                 onEndDay={handleEndDay}
                 endingDay={endingDay}
+                onClearDone={handleClearDone}
+                clearing={clearing}
               />
             )}
 

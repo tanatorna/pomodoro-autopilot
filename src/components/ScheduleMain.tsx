@@ -17,6 +17,9 @@ interface ScheduleMainProps {
   onDelete: (taskId: number) => Promise<void>;
   onEndDay: () => Promise<void>;
   endingDay: boolean;
+  /** เก็บ task ที่เสร็จแล้วเข้าคลัง (หายจาก Schedule) */
+  onClearDone: () => Promise<void>;
+  clearing: boolean;
 }
 
 import { TaskForm } from "./TaskForm";
@@ -34,6 +37,8 @@ export function ScheduleMain({
   onDelete,
   onEndDay,
   endingDay,
+  onClearDone,
+  clearing,
 }: ScheduleMainProps) {
   // done ลงท้าย → priority สูง→ต่ำ → id
   const sorted = [...tasks].sort((a, b) => {
@@ -254,6 +259,12 @@ export function ScheduleMain({
             </div>
           </div>
 
+          {pendingCount === 0 && totalDonePomodoros > 0 && (
+            <p className="text-xs text-center" style={{ color: "var(--success)" }}>
+              ✅ เคลียร์ทุก task วันนี้แล้ว!
+            </p>
+          )}
+
           {pendingCount > 0 && (
             <button
               onClick={onEndDay}
@@ -264,10 +275,14 @@ export function ScheduleMain({
             </button>
           )}
 
-          {pendingCount === 0 && totalDonePomodoros > 0 && (
-            <p className="text-xs text-center" style={{ color: "var(--success)" }}>
-              ✅ เคลียร์ทุก task วันนี้แล้ว!
-            </p>
+          {tasksDone > 0 && (
+            <button
+              onClick={onClearDone}
+              disabled={clearing}
+              className="w-full rounded-lg bg-secondary border border-border text-[var(--ink-soft)] text-xs font-medium py-2 hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              {clearing ? "กำลังเก็บ..." : `🧹 เก็บ task ที่เสร็จเข้าคลัง (${tasksDone})`}
+            </button>
           )}
         </div>
       )}
