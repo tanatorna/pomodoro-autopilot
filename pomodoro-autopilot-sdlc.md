@@ -6,7 +6,9 @@
 > **สถานะ:** Flagship project (แทนที่ expense tracker) — ทำใน **Week 5–6** ของ 12-Week SDET Plan
 > **เป้าหมายซ้อน:** Portfolio piece + ใช้ตอบสัมภาษณ์ SDET ("PM ที่เขียน production-grade automated test ได้")
 >
-> **อัปเดตล่าสุด (2026-06-06):** 🚀 **Deploy ขึ้น prod แล้ว** (Vercel + Turso) — Product เสร็จ Slice 1–4 + enhancements รอบ 2 · เปลี่ยนชื่อแอป "Autopilot" → **Pomodachi** · ฟีเจอร์ **Room** ครบ · **Login (Google OAuth, optional)** · **UI 3 รอบ:** dusk → Ember+Split → **Glass/Mirror UI บนรูปอินทีเรีย** (60:40, panel ขวาเต็มความสูง) · **Backlog ปักวันได้** (scheduledFor + auto-promote) · **Switch/skip task กลางลูก** · ผ่านสมรภูมิ deploy + แก้ infinite alarm loop ตอนเน็ตตัด · **Phase 2 QA ยังไม่เริ่ม ← งานหลักที่เหลือ**
+> **อัปเดตล่าสุด (2026-06-09):** 🚀 **ใช้งานจริงบน prod ทุกวัน** (Vercel + Turso) — Round 3 เน้น **ความเสถียรบนมือถือ + sync ข้ามเครื่อง** หลังใช้จริงเจอ bug จาก use-case จริง · ปิดมหากาพย์ **timer ค้างที่ 00:01 บนมือถือ** (timeout + optimistic local-first + ชดเชย clock-skew + server-clamp + no-store HTML + build stamp) · **Multi-device sync** ครบ (session + task list + backlog + settings re-fetch on focus, settings เก็บ per-room ที่ server) · **Finish-early** (จบ task ก่อนเวลา → แบ่งเวลาที่เหลือ, นับลูกให้ task เดิมเต็มลูก ไม่มีเศษ) · **Screen Wake Lock** + ปลดล็อกเสียงบนมือถือ (AudioContext prime on gesture) · แก้ cadence long-break, advance-to-next เมื่อ task done, reorder neighbor-swap, glass dropdown/popup/scrim · favicon 🍎 · **Phase 2 QA ยังไม่เริ่ม ← งานหลักที่เหลือ**
+>
+> *(เดิม 2026-06-06: deploy prod ครบ Slice 1–4 + Room + Login + UI 3 รอบ (dusk → Ember+Split → Glass/Mirror) + Backlog ปักวันได้ + switch/skip — ดู Build Log Round 1–2)*
 
 ---
 
@@ -67,6 +69,10 @@
 - **Switch/Skip task กลางลูก** — คลิก "เริ่ม" task อื่นใน list = switch · ปุ่ม "⏭ ข้าม" ใน timer = ไป next pending (ลูกที่ทิ้งไม่นับ, confirm 2 ชั้น)
 - **Defer to Backlog + scheduledFor** — task ใน Schedule กดปุ่ม 📥 ย้ายไป Backlog · Backlog ปักวันได้ (native date picker, แยก 2 section: มีกำหนด/ยังไม่กำหนด) · auto-promote ตอนถึงวันที่ปัก
 - **Responsive + ธีม Ember + Glass/Mirror UI** — มือถือ stack · desktop Split **60:40** (timer ซ้าย, panel ขวาเต็มความสูง) บนพื้นรูปอินทีเรีย
+- **Finish early (จบ task ก่อนเวลา)** — ปุ่ม "✓ เสร็จ task นี้" ขณะ WORK · นับลูกที่กำลังทำให้ task เดิม **เต็มลูก (ไม่มีเศษ)** + mark done · เวลาที่เหลือเดินต่อให้ task ถัดไป (โชว์ "(ต่อเวลา)")
+- **Multi-device sync** — กลับมา focus หน้าจอ (`visibilitychange→visible`) = re-fetch session + task list + backlog + settings จาก server เสมอ → 2 เครื่องเห็นตรงกัน · settings เก็บ **per-room ที่ server** (`RoomSetting` + `/api/settings`), localStorage เป็นแค่ cache
+- **Screen Wake Lock + mobile audio** — จอไม่ดับระหว่างโฟกัส (Wake Lock API) · ปลดล็อกเสียง alarm บนมือถือด้วย AudioContext singleton ที่ prime ตอน user gesture (start/resume/switch/skip)
+- **Sync-error toast** — session API ล้มเหลว = เด้ง toast แทนเงียบๆ (ไม่ปล่อยให้ timer ค้างแบบไม่รู้สาเหตุ)
 
 ### OUT — Future Work (เขียนเป็น Roadmap ใน README)
 - Line Bot notification (แก้ปัญหา mobile-background reliability)
@@ -146,12 +152,16 @@
 │  PAUSED   (pure functions, no I/O)           │
 ├────────────────────────────────────────────┤
 │  API Routes (tasks / schedule / session /    │ ← Supertest + Axios + Zod
-│  backlog)                                    │   (integration, ~20%)
+│  backlog / settings / room / auth)           │   (integration, ~20%)
 ├────────────────────────────────────────────┤
-│  Prisma + SQLite (เก็บ endsAt, state, log)   │ ← seed/reset ใน test
+│  Prisma + Turso/libSQL (state, settings,     │ ← seed/reset ใน test
+│  rooms, tasks · local: file SQLite)          │
 └────────────────────────────────────────────┘
    External (Line, Notion) = Future → mock เมื่อเพิ่ม
 ```
+
+> **Models:** `Session` (endsAt/state/completedPomodoros/currentTaskId) · `Task` (estimatedPomodoros/completedPomodoros/status/scheduledFor/priority) · `ScheduleSlot` · `RoomSetting` (work/short/long/perLong นาที, per-room) · `User`/`Account` (auth) — ทุกตาราง scope ด้วย `roomId` + `@@index([roomId])`
+> **Client sync layer (Round 3):** `usePomodoro` = local-first engine (optimistic `tick()` + clock-offset + `Promise.race` timeout) · `useSettings(roomHeaders)` = server-source-of-truth + localStorage cache · re-fetch on `visibilitychange→visible` (session + tasks + backlog + settings)
 
 **หลักการ timer:** เก็บ `endsAt` (timestamp) ไม่ใช่นับ tick → คำนวณ `remaining` จากเวลาจริงทุก tick และตอน `visibilitychange`/refocus เพื่อ catch-up ให้ถูกแม้ tab ถูก throttle
 
@@ -175,10 +185,23 @@ LONG_BREAK ──timer 0──▶ WORK | DONE (ถ้า schedule หมด)
 PAUSED ──resume──▶ (กลับ state เดิม, remaining คงเดิม)
 PAUSED ──restart──▶ WORK        (reset 25:00, partial ไม่นับ)
 
+WORK ──switch(taskId)──▶ WORK   (void ลูกปัจจุบัน + start WORK ใหม่ผูก task อื่น)
+WORK ──skip──▶ WORK | IDLE      (void ลูก in-flight + ไป next pending · ลูกที่เสร็จแล้วเก็บไว้)
+WORK ──finishEarly──▶ WORK | IDLE (credit ลูก in-flight ให้ task เต็มลูก→done · เวลาที่เหลือเดินต่อให้ task ถัดไป)
+
 [Interrupt] = flow แยก: void ลูกปัจจุบัน + แทรก task ด่วน + reschedule ที่เหลือ
 ```
 
 > PAUSED จำ origin (WORK/BREAK) ไว้เพื่อ resume กลับให้ถูก
+>
+> **Session actions ที่ implement จริง (`/api/session` POST):** `start` · `pause` · `resume` · `restart` · `expire` · `switch` · `skip` · `finishEarly` · `clampDuration`
+>
+> **พฤติกรรมสำคัญที่เพิ่มจาก use-case จริง (Round 3):**
+> - **นับ pomodoro:** `expire` (WORK→BREAK) เพิ่ม `task.completedPomodoros++` + mark `done` เมื่อครบ estimated + ปิด ScheduleSlot
+> - **Advance-to-next:** BREAK→WORK ถ้า task เดิม `done` แล้ว → เลื่อนไป next pending (priority desc, id asc) · หมดคิว → IDLE (ไม่เดิน WORK ลอยๆ บน task ที่ขีดฆ่า)
+> - **Cadence reset:** `start` reset `completedPomodoros: 0` ต่อ session → จังหวะ long break (`% POMODOROS_PER_LONG_BREAK`) ไม่สะสมข้ามวัน
+> - **Server-clamp expire:** `effectiveNow = max(nowMs, endsAt)` → server ขยับเสมอเมื่อ client บอกหมด แม้นาฬิกา server ช้า (กัน reconcile ย้อนกลับ → ค้าง)
+> - **clampDuration:** หด phase ที่กำลังเดินยาวเกิน setting (เช่น break เก่าก่อน settings-sync) ให้ตรงค่า · no-op ถ้าเหลือ ≤ duration
 
 ---
 
@@ -341,6 +364,32 @@ Slice 4 ✅ Backlog + End-of-day summary      → api/backlog, BacklogView, DayS
 | `e868cec` | **Backlog ปักวันได้** — `Task.scheduledFor: DateTime?` + native `<input type="date">` เฉพาะใน Backlog · Backlog แยก 2 section "📅 มีกำหนด" / "🌙 ยังไม่กำหนด" · GET tasks/backlog auto-promote `scheduledFor ≤ today` → pending · Schedule task มีปุ่ม "→ Backlog" สำหรับเลื่อนออกจากวันนี้ |
 | `cfb90e4` | **เสียง alarm ใหม่** — marimba do-mi-sol (C5-E5-G5) ซ้ำ 2 รอบ ~1.66s · triangle wave warm + compressor · ไม่น่าตกใจ |
 | `abbbf20` | **Fix:** infinite alarm loop ตอนเน็ตตัด → alarm `endsAt`-keyed idempotency (alarm 1 ครั้ง/ลูก ไม่ว่า API retry กี่รอบ) |
+| **— Round 3 (2026-06-09): stability บนมือถือ + sync ข้ามเครื่อง —** | |
+| `bb138ad` | **Fix:** นับ pomodoro ที่ทำเสร็จเข้า task ที่ active — `expire` เพิ่ม `task.completedPomodoros++` + mark `done` เมื่อครบ estimated + ปิด ScheduleSlot (เดิมไม่เคยเพิ่ม → task ไม่เคยเปลี่ยนสถานะ) |
+| `9b409f2` | **Fix:** ลูกศร reorder ▲▼ ทำงานแม้ priority เท่ากัน → neighbor-swap + reassign priority ให้ต่างกันชัดเจน (เดิม priority±1 floor 0 พัง) |
+| `7c72f27` | **Fix:** เมื่อ task ที่เพิ่งจบเป็น done → เลื่อนไป task ถัดไป (BREAK→WORK advance past done task → next pending หรือ IDLE ถ้าหมดคิว) |
+| `fcf0920` | **Fix:** dialog switch-task โชว์เวลาโฟกัสตาม setting จริง ไม่ hardcode 25:00 |
+| `722481a`, `c93a46e`, `b4f4452` | **Glass dropdown/modal:** scrim-frost เต็มจอหลัง overlay (`backdrop-blur` + คลิกปิด) · room/account dropdown เป็น glass แท้ (opacity 0.78 + blur 32px) · light page-frost + bump legibility |
+| `c4a65a2` | **Favicon 🍎** — `src/app/icon.svg` (emoji) แทน favicon.ico ของ Next.js + notify icon = `/icon.svg` |
+| `f37e2c1` | **Fix:** timeout session requests (AbortController + `Promise.race` hard timeout 8s) → connection ตายค้างไม่ freeze timer (กัน `res.json()` แขวน) |
+| `a6fe725`, `7db21fa` | **Screen Wake Lock** ขณะ timer เดิน (`wakeLockRef`) + chip สถานะ wake-lock (ภายหลังเหลือแค่ ⚠️ ตอน fail) |
+| `dd0df7e` | **Fix:** ปลดล็อกเสียงบนมือถือ — AudioContext ที่สร้างนอก user gesture จะ suspended → singleton + `primeAudio()` (resume + silent blip) ตอน gesture |
+| `16a0b94` | **Feat:** session-sync ล้มเหลว → toast แทนเงียบๆ (`syncError`) |
+| `b12b4d3`, `4a304d0`, `709ec79` | **มหากาพย์ stuck-timer (1):** advance optimistically ตอน expire ไม่รอ server · ชดเชย client/server clock skew (`serverNow` offset) · server honor client expire แม้นาฬิกา server ช้า (`effectiveNow = max(nowMs, endsAt)`) |
+| `0a2f0e4` | **Fix:** เลิก cache HTML document (`Cache-Control: no-store` บน `/`) + build-version stamp (`NEXT_PUBLIC_BUILD_ID` จาก git SHA) — แก้ stale bundle บนมือถือ |
+| `e2bdab6`, `e36e019`, `d9aa607` | (ชั่วคราว) `?debug=1` overlay + live debug readout บนเครื่องจริง เพื่อ diagnose stuck-timer → ลบออกเมื่อปิดเคส |
+| `f9fd9c9` | **Fix (ปิดเคส):** local-first timer advance — optimistic `tick()` รันนอก `expiringRef` guard, network sync แยกต่างหาก → display ไม่เคยถูก block ด้วย expire request ที่ค้าง |
+| `16a4495`, `25cf6ed` | **Fix:** จบ task สุดท้าย → IDLE + ลบ task ที่ done ได้ · start task ได้เมื่อ timer ค้างในสถานะ running/paused-ไม่มี-task (route ผ่าน `switch`) |
+| `f5cc971` | **Fix:** center empty-state ของ Backlog ให้ตรงกับ Schedule |
+| `f5906de`, `71c9d1e` | **Fix:** reset cadence long-break ต่อ session (`start` reset `completedPomodoros: 0`) → ไม่เจอ long break เซอร์ไพรส์ · summary ใช้ผลรวม `completedPomodoros` ราย task · (doc) skip เก็บลูกที่ทำเสร็จไว้ void แค่ลูก in-flight |
+| `6f81d39`, `84aafd6` | **Feat finish-early:** action `finishEarly` (credit ลูก in-flight ให้ A เต็มลูก → done → `currentTaskId=null` คงนาฬิกาเดิม) · เลื่อนปุ่ม "✓ เสร็จ task นี้" เป็น primary แทน "เริ่มใหม่" ขณะ WORK |
+| `1ed464c`, `a27075c`, `f4066b4` | **Glass urgent-popup:** frost หน้าจอด้านหลัง + opaque-glass (กันตัวอักษรทะลุ) + ปุ่ม trigger คมเหนือ scrim (`z-50`) |
+| `c31851a`→`65b478c` | **(revert)** ลอง glass UI polish variant A (frosted cards/edge-highlight/floaty shadow) แล้ว user เลือก revert ทั้งก้อน |
+| `b3c25c3`, `428fe9e`, `4e193cb`, `67fbfad` | **ปุ่ม timer:** PAUSED คง "เริ่มใหม่" (เสร็จ-task แทนเฉพาะ WORK) · 2 ปุ่มหลักสีตัวอักษรเดียวกัน + glassier · skip กลับเป็น linear text link ไร้ขอบ อ่านง่ายทุกพื้นหลัง (+hover) · แก้ hover ปุ่ม glass ที่หาย (Tailwind v4 ไม่ emit plain class → ใช้ arbitrary utilities) |
+| `42778ed` | **Fix:** ไม่โชว์ task ที่ done เป็น timer ที่ active (client optimistic lag) → self-heal `currentTask=null` + refresh |
+| `78eabb5`, `b6e652c` | **Multi-device sync:** re-fetch session + task list + backlog เมื่อ device กลับมา focus (`visibilitychange`) แก้ drift ข้ามเครื่อง |
+| `f24d4c2`, `a27df8f` | **Settings sync per-room:** `RoomSetting` model + `GET/PATCH /api/settings` (clamp ค่า) · `useSettings(roomHeaders)` server-as-source-of-truth, localStorage แค่ cache · migrate-turso validate token เป็น JWT จริง |
+| `96dc1a2` | **Fix:** phase ที่กำลังเดินยาวเกิน setting (เช่น break 11:21 เมื่อ setting=5) → action `clampDuration` หดให้ตรง setting · self-heal effect ใน client เรียกเมื่อ `remainingMs > duration+1500` · no-op ถ้าเหลือ ≤ duration |
 
 > **Build Log — ฟีเจอร์ Room (commit + push prod แล้ว · 2026-05-30):**
 > - ✅ **แก้ bug 3 จุด:** (1) *infinite fetch loop* → `useMemo` ครอบ `roomHeaders`  (2) *session โหลดผิดห้อง* → effect รอจน `roomId` พร้อม  (3) *noti แจ้งเตือนเด้งรัวๆ* (ticker ยิง expire ซ้ำตอน API ช้า) → in-flight guard ใน `triggerExpire` (พิสูจน์: เด้ง 1 ครั้ง เดิม ~5)
@@ -354,6 +403,24 @@ Slice 4 ✅ Backlog + End-of-day summary      → api/backlog, BacklogView, DayS
 > - ✅ **แก้ bug 5 จุดที่เจอบน prod:** (4) *Thai chars หลุดจาก Plex Thai* (Newsreader ไม่มี glyph ไทย → fallback ไป Sukhumvit) → ใส่ font stack `var(--font-heading), var(--font-sans), system-ui` ที่ heading inline 3 จุด · (5) *room/account dropdown โปร่งเกิน* → override opacity 0.96 + เอา `aside overflow-hidden` ออก (dropdown clip ที่ขอบซ้าย panel) · (6) *empty-state ตัวอักษรจาง* → ink-soft · (7) *input รับชื่อยาวไม่ได้* → stack form + task item 2-row + tooltip · (8) **infinite alarm loop ตอนเน็ตตัด** → API fail → state ไม่อัปเดต → ticker tick ถัดมา trigger ซ้ำทุก 1 วิ · แก้ด้วย `endsAt`-keyed idempotency ใน `triggerExpire` (alarm 1 ครั้ง/ลูก แม้ API retry หลายรอบ — verified: 1 alarm vs เดิม 6/6sec)
 > - ✅ **เพิ่มฟีเจอร์รอบสอง:** UI Glass/Mirror + photo bg + 60:40 split + panel เต็มขอบบน · C2 task picker ตอน IDLE · rename → Pomodachi · switch/skip task กลางลูก · แก้ pomodoros inline · **Backlog ปักวันได้** (scheduledFor + auto-promote) · marimba alarm + idempotency · timer ring forward-fill
 > - verify ผ่าน browser ทุก scenario (รวม simulated offline) + `tsc` + `build` เขียว · ทุก commit push prod แล้ว
+
+> **Build Log — Round 3 (stability บนมือถือ + multi-device sync · 2026-06-09):**
+> *รอบนี้ต่างจาก 2 รอบแรก — ไม่ใช่ฟีเจอร์ใหม่ แต่เป็น bug ที่โผล่จาก **การใช้จริงทุกวันบนมือถือ + หลายเครื่อง** เป็น story การ debug production ที่ดีที่สุดสำหรับสัมภาษณ์ SDET*
+>
+> - 🏔 **มหากาพย์ "timer ค้างที่ 00:01 บนมือถือ"** (หลายเครื่อง หลายรอบ) — อาการ: เปิดเว็บทิ้งไว้/จอล็อค กลับมาเวลาโฟกัสหมดแล้วแต่ระบบค้าง ขยับไม่ได้ · ใช้ **build stamp + on-device debug overlay** (`t248 WORK 0s exp:127/1 BUSY pending`) ขุดจน root cause **5 ชั้น**:
+>   1. **ไม่มี request timeout** → `expiringRef` ค้างเมื่อ network แขวน → เพิ่ม timeout (`f37e2c1`)
+>   2. **AbortController ไม่ reject `res.json()` ที่แขวน** → ใช้ `Promise.race([fetch, timeout])` hard-timeout (`f9fd9c9`)
+>   3. **display รอ server ก่อนค่อยขยับ** → optimistic **local-first** advance นอก guard (`b12b4d3`, `f9fd9c9`)
+>   4. **client/server clock skew** → server คืน WORK เดิม → client reconcile ย้อนกลับ → ค้าง · แก้ด้วย `serverNow` offset (`4a304d0`) + server-clamp `effectiveNow = max(nowMs, endsAt)` ให้ server ขยับเสมอเมื่อ client บอกหมด (`709ec79`)
+>   5. **มือถือเสิร์ฟ bundle เก่าจาก cache** (incognito ใช้ได้) → `no-store` บน HTML + build stamp ยืนยันเวอร์ชัน (`0a2f0e4`)
+>   → ผล: local-first optimistic + Promise.race timeout = timer เดินหน้าได้แม้ network ตาย/ช้า/นาฬิกาเหลื่อม ทุกเวอร์ชัน client
+> - 🔄 **Multi-device sync (trilogy):** กลับมา focus = re-fetch **session** (`78eabb5`) + **task list & backlog** (`b6e652c`) + **settings** (`f24d4c2`) → 2 เครื่องเห็น state/คิว/setting ตรงกัน · settings ย้ายจาก localStorage-only → **server per-room** (`RoomSetting` + `/api/settings`, localStorage แค่ cache)
+> - ⏱ **clampDuration** (`96dc1a2`) — break ที่สร้างด้วย setting เก่า (ก่อน sync) เดินยาวเกิน → หดให้ตรง setting อัตโนมัติ (self-heal client + server action, no-op ถ้าปกติ)
+> - ✓ **Finish-early** (`6f81d39`, `84aafd6`) — จบ task ก่อนเวลา, นับลูกให้ task เดิมเต็มลูก (ไม่มีเศษ ตาม decision "นับให้ A") + ปุ่มเลื่อนเป็น primary
+> - 🔊📱 **Mobile reliability:** Screen Wake Lock (`a6fe725`) + ปลดล็อกเสียงด้วย AudioContext singleton prime-on-gesture (`dd0df7e`) + sync-error toast (`16a0b94`) + favicon 🍎 (`c4a65a2`)
+> - 🐛 **Bug จาก use-case จริง:** pomodoro ไม่นับเข้า task (`bb138ad`) · timer ไม่ advance เมื่อ task done (`7c72f27`, `42778ed`) · reorder priority เท่ากันพัง (`9b409f2`) · long break เซอร์ไพรส์เพราะ cadence สะสม (`f5906de`) · จบ task สุดท้ายแล้วยังกดเริ่ม/ลบไม่ได้ (`16a4495`, `25cf6ed`)
+> - 🎨 **Glass polish:** dropdown/popup/modal เป็น glass แท้ (0.78/blur32) + scrim-frost เต็มจอ + z-index trigger (`722481a`..`f4066b4`) · ปุ่ม timer สีตัวอักษรเดียวกัน + skip เป็น linear link อ่านง่ายทุกพื้นหลัง · ลอง variant A glass cards แล้ว **revert** (`c31851a`→`65b478c`)
+> - verify ทุก scenario บน browser preview + on-device (มือถือจริง, จอล็อค, เน็ตตัด, 2 เครื่องพร้อมกัน) · `tsc` + `build` เขียว · ทุก commit push prod แล้ว · **ยืนยัน RoomSetting migration ขึ้น prod สำเร็จ** (GET/PATCH /api/settings ทำงานบน prod)
 
 **Room — Known Limitations & Stretch Goals** (ตัดสินใจ 2026-05-30)
 
@@ -387,6 +454,11 @@ Slice 4 ✅ Backlog + End-of-day summary      → api/backlog, BacklogView, DayS
 | Dev runtime cache เก่าหลัง `prisma generate` | `Unknown argument scheduledFor` แม้ regenerate client แล้ว | **restart Next dev server** — runtime keep stale client ใน memory, regenerate file system อย่างเดียวไม่พอ |
 | Migration ใหม่ที่ local ไม่ตามขึ้น prod | runtime queries error หลัง deploy (เช่น POST /api/tasks → 500) | **ทุก migration ใหม่ต้องรัน `node scripts/migrate-turso.mjs`** กับ Turso prod แยก · ไม่ต้อง redeploy (schema sync อย่างเดียว) |
 | Alarm loop ตอนเน็ตตัด | Production alert เด้งรัวๆ จนเน็ตกลับ | ticker เห็น expired + fetch fail → state ไม่อัปเดต → loop · แก้ด้วย **idempotency key (`endsAt`)** ใน `triggerExpire` — alarm 1 ครั้ง/ลูก แม้ API retry หลายรอบ |
+| **Timer ค้างที่ 00:01 บนมือถือ** (2026-06-09) | เปิดทิ้งไว้/จอล็อค กลับมาเวลาหมดแล้วแต่ค้าง กดไม่ขยับ | root cause 5 ชั้น: no timeout, `res.json()` แขวน (AbortController ไม่ช่วย), display รอ server, clock skew, stale bundle · แก้: **local-first optimistic + `Promise.race` hard-timeout + clock-offset + server-clamp `max(now,endsAt)` + `no-store` HTML + build stamp** |
+| **Stale bundle บนมือถือ** | clear cache แล้วเสียงมา แต่จอยังค้าง (incognito ปกติ) | browser cache HTML เก่า → ตั้ง `Cache-Control: no-store` บน `/` + `NEXT_PUBLIC_BUILD_ID` (git SHA) โชว์มุมจอ เพื่อยืนยันเวอร์ชันที่รันจริงระหว่าง debug |
+| **Tailwind v4 ไม่ emit plain class ที่เพิ่งเพิ่ม** | ปุ่ม glass สูญ hover · `.glass-btn` ไม่อยู่ใน CSSOM (`.paper-panel` อยู่) | v4 (`@theme inline`) ไม่ scan plain CSS class ใหม่ใน globals.css เสมอ → ใช้ **arbitrary-value utilities** (`bg-[rgba(...)] hover:bg-[...] backdrop-blur-[18px] shadow-[...]`) ที่ emit ชัวร์ + รองรับ `:hover` (inline style override ด้วย hover ไม่ได้) |
+| **migrate-turso HTTP 400** | `node scripts/migrate-turso.mjs` ตอบ 400 | `turso db tokens create` คืน string error "You are not logged in..." (88 ตัว ไม่ใช่ JWT) มาเป็น token → แก้: `turso auth login` ก่อน + เพิ่ม **JWT-format guard** ในสคริปต์ (`/^ey[A-Za-z0-9_-]+\./`) ให้ error ชัดแทนการยิง garbage |
+| **Settings ไม่ตรงกันข้ามเครื่อง** | เครื่อง A ตั้ง 25/5 เครื่อง B เห็นค่าอื่น | settings เดิมอยู่ localStorage (per-device) → ย้ายเป็น **server per-room** (`RoomSetting` + `/api/settings`) · ต้องรัน migrate-turso เพิ่มตาราง RoomSetting บน prod (ทำแล้ว ✅) |
 
 > **Env ที่ prod ต้องมี (5 ตัว):** `AUTH_SECRET` · `AUTH_GOOGLE_ID` · `AUTH_GOOGLE_SECRET` · `DATABASE_URL` (libsql) · `TURSO_AUTH_TOKEN`
 > **บทเรียนหลัก:** local เขียว ≠ prod เขียว — env, build step, และ DB migration ของ prod เป็นคนละชุดที่ต้องจัดการแยก
@@ -455,4 +527,6 @@ Project Overview · QA Artifacts Summary · Skills Demonstrated · Lessons Learn
 
 ---
 
-*Next (จากสถานะจริง 2026-06-06): Pomodachi live บน prod ครบทุกฟีเจอร์ที่วางแผน (Room, Login, Backlog scheduling, switch/skip, marimba alarm, Glass/Mirror UI) + แก้ bug จริงบน prod (offline alarm loop, dropdown clipping, Thai font fallback) → ก้าวต่อไปคือ **Phase 2 QA** (Manual → E2E → Integration → Unit) — พระเอกของ portfolio · งานเล็กค้าง: reset Google/Turso secrets, publish OAuth ออกจาก Testing mode (เมื่อพร้อม), Stretch B (TTL auto-cleanup ห้องร้าง)*
+*Next (จากสถานะจริง 2026-06-09): Pomodachi ใช้งานจริงบน prod ทุกวัน — Round 3 ปิด bug จาก use-case จริงครบ (timer ค้างบนมือถือ, multi-device sync session/task/settings, finish-early, wake lock, mobile audio, cadence/advance/reorder, clampDuration) → **ทุกฟีเจอร์ที่วางแผน + เสถียรพอใช้จริง** · ก้าวต่อไปคือ **Phase 2 QA** (Manual → E2E → Integration → Unit + CI + Allure) — พระเอกของ portfolio SDET, ยังไม่เริ่ม · งานเล็กค้าง: reset Google/Turso secrets (เคยโผล่ตอน setup), publish OAuth ออกจาก Testing mode (เมื่อพร้อมเปิดสาธารณะ), Stretch B (TTL auto-cleanup ห้องร้าง)*
+
+> **บทเรียน Round 3 (เพิ่มสำหรับสัมภาษณ์):** local เขียว ≠ prod เขียว ≠ **มือถือจริงใช้ได้** — bug ที่หนักสุดมาจาก device/network/clock จริง ไม่ใช่ logic · เครื่องมือที่ปิดเคสได้: build stamp ยืนยันเวอร์ชัน + on-device debug overlay + การแยก optimistic-display ออกจาก network-sync (local-first) · sync ข้ามเครื่องที่ถูกคือ "server เป็น source of truth, re-fetch on focus" ไม่ใช่ push realtime (over-engineer สำหรับ scope นี้)
