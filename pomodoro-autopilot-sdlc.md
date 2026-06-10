@@ -64,7 +64,7 @@
 - **Configurable durations** — ตั้งเวลา WORK/BREAK/LONG_BREAK เองได้ (แท็บ Settings)
 - **Room** — แยกข้อมูลต่อผู้ใช้ + แชร์ห้องผ่านลิงก์ (สร้าง / แก้รหัส+เช็คซ้ำ / เข้าห้องอื่น / ลบห้อง)
 - **Login (optional Google sign-in)** — claim ห้อง + เข้าถึงข้ามเครื่อง (ไม่บังคับ login)
-- **Task edit / delete** — แก้ชื่อ + จำนวน 🍅 inline · ลบ task (กัน task ที่กำลังโฟกัสไม่ให้ลบ)
+- **Task edit / delete** — แก้ชื่อ + จำนวน 🍅 inline · ลบ task (กัน task ที่กำลังโฟกัสไม่ให้ลบ) · **ใช้ได้ทั้ง Schedule + Backlog** (UI/handler ชุดเดียวกัน, handler reload ทั้งสอง list)
 - **Task picker ตอน IDLE (C2)** — preview "ถัดไป · &lt;task&gt;" + ปุ่ม "เปลี่ยน" ก่อนกดเริ่ม
 - **Switch/Skip task กลางลูก** — คลิก "เริ่ม" task อื่นใน list = switch · ปุ่ม "⏭ ข้าม" ใน timer = ไป next pending (ลูกที่ทิ้งไม่นับ, confirm 2 ชั้น)
 - **Defer to Backlog + scheduledFor** — task ใน Schedule กดปุ่ม 📥 ย้ายไป Backlog · Backlog ปักวันได้ (native date picker, แยก 2 section: มีกำหนด/ยังไม่กำหนด) · auto-promote ตอนถึงวันที่ปัก

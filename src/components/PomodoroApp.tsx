@@ -250,7 +250,7 @@ export function PomodoroApp() {
       headers: roomHeaders,
       body: JSON.stringify(patch),
     });
-    await loadTasks();
+    await Promise.all([loadTasks(), loadBacklog()]); // reload ทั้งสอง — edit ใช้ได้ทั้ง Schedule + Backlog
     // ถ้าจำนวน 🍅 เปลี่ยน อาจกระทบ schedule slots → regenerate
     if (patch.estimatedPomodoros !== undefined) await generateSchedule();
   }
@@ -273,7 +273,7 @@ export function PomodoroApp() {
       method: "DELETE",
       headers: roomHeaders,
     });
-    await loadTasks();
+    await Promise.all([loadTasks(), loadBacklog()]); // ลบได้ทั้ง Schedule + Backlog
     await generateSchedule();
   }
 
@@ -573,6 +573,8 @@ export function PomodoroApp() {
                 onAdd={handleAddToBacklog}
                 onMoveToActive={handleMoveToActive}
                 onScheduleTask={handleScheduleTask}
+                onEdit={handleEditTask}
+                onDelete={handleDeleteTask}
               />
             )}
 
