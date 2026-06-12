@@ -6,7 +6,7 @@
 > **สถานะ:** Flagship project (แทนที่ expense tracker) — ทำใน **Week 5–6** ของ 12-Week SDET Plan
 > **เป้าหมายซ้อน:** Portfolio piece + ใช้ตอบสัมภาษณ์ SDET ("PM ที่เขียน production-grade automated test ได้")
 >
-> **อัปเดตล่าสุด (2026-06-10):** 🚀 **ใช้งานจริงบน prod ทุกวัน** (Vercel + Turso) — Round 4 เน้น **ปิด loop การใช้งานรายวัน + ประวัติ + ขัดเงา UI** · **Archive task ที่เสร็จ** (ปุ่ม 🧹 เก็บเข้าคลัง, status `archived`) + **auto จบวันเที่ยงคืน** (date rollover ผ่าน localStorage → archive done + reset timer, task ค้างยกมาวันใหม่) · **แท็บ 📊 Stats** = ประวัติรายวัน (🍅/task) + แท่งสัดส่วน + สรุป**ค่าเฉลี่ย/วัน** + **คลิกวันกางดู task ของวันนั้น** · สถิติ derive จาก **`Task.doneDate`** (วันที่ขีดฆ่า = เสร็จจริง, intrinsic → คงอยู่แม้ archive · pivot ทิ้ง DaySummary snapshot) · **edit/delete task ใน Backlog** ได้แล้ว (parity กับ Schedule) · **ลากเรียงลำดับ task** (drag-reorder, @dnd-kit — กดค้างลากบนมือถือ) · scrollbar บางกลืนธีม · **Phase 2 QA ยังไม่เริ่ม ← งานหลักที่เหลือ**
+> **อัปเดตล่าสุด (2026-06-12):** 🚀 **ใช้งานจริงบน prod ทุกวัน** (Vercel + Turso) — Round 4 เน้น **ปิด loop การใช้งานรายวัน + ประวัติ + ขัดเงา UI** · **ปุ่ม ✔ mark done มือ** (ทำงานจริงแล้วแต่ลืมกดเริ่ม timer → เครดิต 🍅 เต็ม estimate + เข้า Stats) · **Archive task ที่เสร็จ** (ปุ่ม 🧹 เก็บเข้าคลัง, status `archived`) + **auto จบวันเที่ยงคืน** (date rollover ผ่าน localStorage → archive done + reset timer, task ค้างยกมาวันใหม่) · **แท็บ 📊 Stats** = ประวัติรายวัน (🍅/task) + แท่งสัดส่วน + สรุป**ค่าเฉลี่ย/วัน** + **คลิกวันกางดู task ของวันนั้น** · สถิติ derive จาก **`Task.doneDate`** (วันที่ขีดฆ่า = เสร็จจริง, intrinsic → คงอยู่แม้ archive · pivot ทิ้ง DaySummary snapshot) · **edit/delete task ใน Backlog** ได้แล้ว (parity กับ Schedule) · **ลากเรียงลำดับ task** (drag-reorder, @dnd-kit — กดค้างลากบนมือถือ) · scrollbar บางกลืนธีม + ปุ่ม icon เส้น monochrome แทนอิโมจิ · **Phase 2 QA ยังไม่เริ่ม ← งานหลักที่เหลือ**
 >
 > *(เดิม 2026-06-09 · Round 3 — เสถียรบนมือถือ + sync ข้ามเครื่อง: ปิดมหากาพย์ timer ค้าง 00:01 (timeout + local-first + clock-skew + server-clamp + no-store + build stamp), multi-device sync (session/task/backlog/settings re-fetch on focus), finish-early, Screen Wake Lock, mobile audio unlock, cadence/advance/reorder, glass dropdown/popup/scrim, favicon 🍎)*
 >
@@ -70,7 +70,7 @@
 - **Mark done มือ (✔)** — ปุ่ม ✔ บนการ์ด (task ที่ไม่ได้โฟกัสอยู่) สำหรับเคส "ทำงานจริงแล้วแต่ลืมกดเริ่ม timer" → mark done + เครดิต 🍅 เต็มตาม estimate + stamp `doneDate` วันนี้ → เข้า Stats เหมือนทำผ่าน timer
 - **Task picker ตอน IDLE (C2)** — preview "ถัดไป · &lt;task&gt;" + ปุ่ม "เปลี่ยน" ก่อนกดเริ่ม
 - **Switch/Skip task กลางลูก** — คลิก "เริ่ม" task อื่นใน list = switch · ปุ่ม "⏭ ข้าม" ใน timer = ไป next pending (ลูกที่ทิ้งไม่นับ, confirm 2 ชั้น)
-- **Defer to Backlog + scheduledFor** — task ใน Schedule กดปุ่ม 📥 ย้ายไป Backlog · Backlog ปักวันได้ (native date picker, แยก 2 section: มีกำหนด/ยังไม่กำหนด) · auto-promote ตอนถึงวันที่ปัก
+- **Defer to Backlog + scheduledFor** — task ใน Schedule กดปุ่มเก็บเข้า Backlog (icon กล่อง↓) ย้ายไป Backlog · Backlog ปักวันได้ (native date picker, แยก 2 section: มีกำหนด/ยังไม่กำหนด) · auto-promote ตอนถึงวันที่ปัก
 - **Responsive + ธีม Ember + Glass/Mirror UI** — มือถือ stack · desktop Split **60:40** (timer ซ้าย, panel ขวาเต็มความสูง) บนพื้นรูปอินทีเรีย
 - **Finish early (จบ task ก่อนเวลา)** — ปุ่ม "✓ เสร็จ task นี้" ขณะ WORK · นับลูกที่กำลังทำให้ task เดิม **เต็มลูก (ไม่มีเศษ)** + mark done · เวลาที่เหลือเดินต่อให้ task ถัดไป (โชว์ "(ต่อเวลา)")
 - **Multi-device sync** — กลับมา focus หน้าจอ (`visibilitychange→visible`) = re-fetch session + task list + backlog + settings จาก server เสมอ → 2 เครื่องเห็นตรงกัน · settings เก็บ **per-room ที่ server** (`RoomSetting` + `/api/settings`), localStorage เป็นแค่ cache
@@ -122,11 +122,11 @@
 | J2 | **โฟกัส/พักอัตโนมัติ** | กด "เริ่ม"/"เลือก" task → WORK 25:00 → หมดเวลา (เสียง+noti) → BREAK อัตโนมัติ → task ถัดไป → ครบ 4 รอบ = LONG_BREAK |
 | J3 | **Pause / Resume / Restart** | หยุดชั่วคราว → เดินต่อ(ลูกเดิม) · เริ่มใหม่(reset 25:00 ไม่นับ) |
 | J4 | **แทรกงานด่วน** | กด Interrupt FAB → กรอกงาน → void ลูกปัจจุบัน + จัด schedule ใหม่ + เริ่มงานด่วนทันที |
-| J5 | **แก้ไข/ลบ/จัดลำดับ task** | แก้ชื่อ+🍅 inline (ดับเบิลคลิก/✎) + 🗑 ลบ → **ทำได้ทั้ง Schedule + Backlog** (task ที่กำลังโฟกัส **ลบไม่ได้**) · จัดลำดับ (Schedule เท่านั้น): ▲▼ ทีละ 1 หรือ **กดค้าง+ลากการ์ด** (drag-reorder) · Backlog เรียงตามวันที่ปัก |
+| J5 | **แก้ไข/ลบ/จัดลำดับ task** | แก้ชื่อ+🍅 inline (ดับเบิลคลิก/✎) + ลบ (icon ถังขยะ) → **ทำได้ทั้ง Schedule + Backlog** (task ที่กำลังโฟกัส **ลบไม่ได้**) · จัดลำดับ (Schedule เท่านั้น): ▲▼ ทีละ 1 หรือ **กดค้าง+ลากการ์ด** (drag-reorder) · Backlog เรียงตามวันที่ปัก |
 | J6 | **Switch / Skip กลางลูก** | ขณะ WORK/PAUSED คลิก "เริ่ม" task อื่น = **switch** (confirm, ลูกที่ทิ้งไม่นับ) · ปุ่ม "⏭ ข้าม task นี้" ใน timer = **skip** ไป next pending (ลูกที่ทำเสร็จก่อนหน้ายังเก็บไว้) |
 | J7 | **จบ task เอง (ไม่รอ timer)** | (a) **finish early:** ขณะ WORK กด "✓ เสร็จ task นี้" → นับลูกที่ทำอยู่เต็มลูก + done → เวลาที่เหลือเดินต่อให้ task ถัดไป ("ต่อเวลา") · (b) **mark done มือ:** ปุ่ม **✔** บนการ์ด (ตัวที่ไม่ได้โฟกัส) → done + เครดิต 🍅 เต็ม estimate + เข้า Stats — เคสทำงานจริงแล้วแต่ลืมกดเริ่ม timer |
 | J8 | **เก็บงาน / จบวัน** | ปุ่ม **🧹 เก็บ task ที่เสร็จเข้าคลัง** (archive, หายจาก Schedule) · ปุ่ม **🌙 จบวัน** = ย้าย task ค้างไป Backlog + reset · **auto จบวันเที่ยงคืน** (เปิดแอปข้ามวัน → เก็บ task เสร็จ + task ค้างยกมาวันใหม่) |
-| J9 | **Backlog / park งานอนาคต** | เก็บงานเข้า Backlog · **ปักวัน** (date picker → auto-promote เป็น today เมื่อถึงวัน) · ดึงกลับมาทำวันนี้ (↑) · Schedule กด 📥 ส่งกลับ Backlog |
+| J9 | **Backlog / park งานอนาคต** | เก็บงานเข้า Backlog · **ปักวัน** (date picker → auto-promote เป็น today เมื่อถึงวัน) · ดึงกลับมาทำวันนี้ (↑) · Schedule กดปุ่มกล่อง↓ ส่งกลับ Backlog |
 | J10 | **ดูสถิติ (Stats)** | แท็บ 📊 Stats → สรุปค่าเฉลี่ย 🍅/task ต่อวัน + ประวัติรายวัน (แท่งสัดส่วน) → **คลิกการ์ดวัน = กางดู task ที่เสร็จวันนั้น** |
 | J11 | **ตั้งค่าเวลา** | แท็บ Setting → ปรับ WORK/BREAK/LONG_BREAK + รอบ/long-break (number + ปุ่ม ±) · sync per-room ข้ามเครื่อง |
 | J12 | **Room (จัดการห้อง)** | 🔑 → **แก้รหัสห้อง** (เช็คซ้ำ live: ✓ว่าง/✗มีคนใช้) · **+ สร้างห้องใหม่** · **เข้าห้องอื่น** (ใส่ code) · **ลบห้อง** (confirm 2 ชั้น → ห้องเปล่าใหม่) · **copy link** แชร์ |
@@ -134,7 +134,7 @@
 
 #### 🎨 C. States ที่ต้องออกแบบ (designer checklist)
 - **Timer:** IDLE "พร้อมเริ่ม" / WORK "โฟกัส 🍅" / SHORT_BREAK "พักสั้น ☕" / LONG_BREAK "พักยาว 🛋️" / PAUSED "หยุดพัก ⏸" / loading "--:--"
-- **Task item:** ปกติ / **active** (ไฮไลต์ terracotta tint + จุดกะพริบ) / **done** (rank=✓ sage, ขีดฆ่า) / **editing** (inline input) / **dragging** (ยกขึ้น, opacity ลด — Schedule) / hover (โผล่ปุ่ม ✔ ✎ 🗑)
+- **Task item:** ปกติ / **active** (ไฮไลต์ terracotta tint + จุดกะพริบ) / **done** (rank=✓ sage, ขีดฆ่า) / **editing** (inline input) / **dragging** (ยกขึ้น, opacity ลด — Schedule) / hover (โผล่ปุ่มแถวล่าง: ✔ ▲▼ เริ่ม ✎ กล่อง↓ ถังขยะ — ทุกตัวโทนจาง `--faint` เดียวกัน, อิโมจิถูกแทนด้วย icon เส้น)
 - **Task list:** ว่าง ("ยังไม่มี task — พิมพ์ด้านบน 👆") / มีรายการ
 - **Stats:** ว่าง ("ยังไม่มีสถิติ...") / มีข้อมูล (สรุปค่าเฉลี่ย + การ์ดรายวัน) / การ์ดกาง (list task ของวัน · วันเก่าก่อนมีฟีเจอร์ = "ไม่มีรายละเอียด")
 - **Room dropdown:** ปัจจุบัน(+แก้รหัส+copy) / สร้างใหม่ / เข้าห้องอื่น / danger zone ลบ(idle→confirm) · rename: checking/available/taken/invalid
@@ -143,7 +143,7 @@
 - **Error/edge:** ห้องว่าง · network error · OAuth error (Testing mode = เฉพาะ test users)
 
 #### 🧩 D. Component → ไฟล์ (อ้างอิงให้ designer/dev คุยกัน)
-`PomodoroApp` (layout) · `Timer` · `ScheduleMain` (task list+form+สรุปวันนี้) · `TaskForm` · `BacklogView` · `StatsView` (สถิติรายวัน) · `SettingsPanel` · `InterruptButton` · `RoomBadge` · `AccountButton`
+`PomodoroApp` (layout) · `Timer` · `ScheduleMain` (task list+form+สรุปวันนี้) · `TaskForm` · `BacklogView` · `StatsView` (สถิติรายวัน) · `SettingsPanel` · `InterruptButton` · `RoomBadge` · `AccountButton` · `icons` (SVG เส้น: TrashIcon, ToBacklogIcon)
 > *(สรุปวันนี้ย้ายเข้า `ScheduleMain` footer แล้ว — component `DaySummary.tsx` เก่าถูกลบทิ้ง 2026-06-10)*
 
 #### 🌙 E. Visual ปัจจุบัน + จุดที่อยากให้ designer ช่วยขัด
@@ -409,8 +409,9 @@ Slice 4 ✅ Backlog + End-of-day summary      → api/backlog, BacklogView, DayS
 | `d1481d3` | **Stats: total → ค่าเฉลี่ย/วัน** — สรุปแสดง 🍅 เฉลี่ย/วัน + task เฉลี่ย/วัน + จำนวนวัน (baseline ตัวเอง ไว้เทียบ/ตั้งเป้า · total โตเรื่อยๆ ไม่บอกอะไร) |
 | `2920a23` | **Style: scrollbar บางกลืนธีม** — global plain CSS (WebKit pseudo-element + Firefox `scrollbar-width/color`) · track ใส, thumb terracotta-brown โปร่งโค้งมน · ครอบทุก scroll area |
 | `897c508` | **Feat: edit/delete task ใน Backlog** — เพิ่ม inline edit (ชื่อ + stepper 🍅) + ปุ่ม 🗑 ใน BacklogView (parity กับ Schedule, reuse `handleEditTask`/`handleDeleteTask`) · handler reload ทั้ง tasks+backlog → sync 2 list |
-| `(2026-06-12)` | **Feat: ปุ่ม ✔ mark done มือ** — เคส "ทำงานจริงไปหลายลูกแล้วแต่ลืมกดเริ่ม timer" → กด ✔ บนการ์ด = `status done` + `completedPomodoros = max(เดิม, estimate)` + stamp `doneDate` วันนี้ → เข้า Stats เหมือนทำผ่าน timer · โชว์เฉพาะ task ที่ไม่ done และ**ไม่ใช่ตัวที่กำลังโฟกัส** (ตัวโฟกัสใช้ "เสร็จ task นี้" ใน Timer) · PATCH /api/tasks/[id] รับ `completedPomodoros` + `doneDate` เพิ่ม |
 | `(2026-06-10)` | **Feat: ลากเรียงลำดับ task (drag-reorder)** — `@dnd-kit` ใน ScheduleMain · กดค้าง/ลากการ์ด active เลื่อนตำแหน่งได้ (ย้าย #10→#1 ครั้งเดียว แทนกด ▲ 9 ที) · sensors: MouseSensor(distance 8) + TouchSensor(delay 220ms = long-press, ปัดเร็ว=scroll) + Keyboard · done tasks ปักล่างนิ่ง · optimistic order state (sync เมื่อชุด id เปลี่ยน) · drop → `onReorder` reassign priority (len..1) PATCH เฉพาะที่เปลี่ยน · เก็บปุ่ม ▲▼ ไว้ (ปุ่มไม่ชน drag เพราะ activation constraint) |
+| `4fa267e`, `c7b255c` | **Feat: ปุ่ม ✔ mark done มือ** (2026-06-12) — เคส "ทำงานจริงไปหลายลูกแล้วแต่ลืมกดเริ่ม timer" → กด ✔ บนการ์ด = `status done` + `completedPomodoros = max(เดิม, estimate)` + stamp `doneDate` วันนี้ → เข้า Stats เหมือนทำผ่าน timer · โชว์เฉพาะ task ที่ไม่ done และ**ไม่ใช่ตัวที่กำลังโฟกัส** (ตัวโฟกัสใช้ "เสร็จ task นี้" ใน Timer) · PATCH /api/tasks/[id] รับ `completedPomodoros` + `doneDate` เพิ่ม · style จางเดียวกับปุ่ม icon อื่น (ไม่เน้นสี) |
+| `a799362` | **Style: เปลี่ยนอิโมจิ 📥/🗑 → icon เส้น monochrome** — อิโมจิ render สีเต็ม ไม่รับ CSS color เลยโดดจากปุ่ม glyph จางอื่นๆ → `icons.tsx` (TrashIcon ถังขยะ + ToBacklogIcon กล่อง↓, inline SVG `stroke=currentColor`) ใช้ทั้ง ScheduleMain + BacklogView → แถวปุ่มโทนเดียวกันทั้ง normal/hover |
 
 > **Build Log — ฟีเจอร์ Room (commit + push prod แล้ว · 2026-05-30):**
 > - ✅ **แก้ bug 3 จุด:** (1) *infinite fetch loop* → `useMemo` ครอบ `roomHeaders`  (2) *session โหลดผิดห้อง* → effect รอจน `roomId` พร้อม  (3) *noti แจ้งเตือนเด้งรัวๆ* (ticker ยิง expire ซ้ำตอน API ช้า) → in-flight guard ใน `triggerExpire` (พิสูจน์: เด้ง 1 ครั้ง เดิม ~5)
@@ -549,6 +550,6 @@ Project Overview · QA Artifacts Summary · Skills Demonstrated · Lessons Learn
 
 ---
 
-*Next (จากสถานะจริง 2026-06-10): Pomodachi ใช้งานจริงบน prod ทุกวัน — Round 4 ปิด loop รายวัน (archive + auto จบวันเที่ยงคืน), เพิ่มประวัติ (แท็บ Stats: ค่าเฉลี่ย/วัน + คลิกดู task รายวัน, derive จาก `Task.doneDate`), backlog edit/delete, scrollbar เนียน → **ฟีเจอร์ product ครบวง + เสถียรพอใช้จริง** · ก้าวต่อไปคือ **Phase 2 QA** (Manual → E2E → Integration → Unit + CI + Allure) — พระเอกของ portfolio SDET, ยังไม่เริ่ม · งานเล็กค้าง: reset Google/Turso secrets (เคยโผล่ตอน setup), publish OAuth ออกจาก Testing mode (เมื่อพร้อมเปิดสาธารณะ), Stretch B (TTL auto-cleanup ห้องร้าง)*
+*Next (จากสถานะจริง 2026-06-12): Pomodachi ใช้งานจริงบน prod ทุกวัน — Round 4 ปิด loop รายวัน (archive + auto จบวันเที่ยงคืน), เพิ่มประวัติ (แท็บ Stats: ค่าเฉลี่ย/วัน + คลิกดู task รายวัน, derive จาก `Task.doneDate`), ✔ mark done มือ (ลืมกดเริ่ม timer ก็เก็บสถิติได้), drag-reorder, backlog edit/delete, ขัดเงา UI (scrollbar + icon เส้น) → **ฟีเจอร์ product ครบวง + เสถียรพอใช้จริง** · ก้าวต่อไปคือ **Phase 2 QA** (Manual → E2E → Integration → Unit + CI + Allure) — พระเอกของ portfolio SDET, ยังไม่เริ่ม · งานเล็กค้าง: reset Google/Turso secrets (เคยโผล่ตอน setup), publish OAuth ออกจาก Testing mode (เมื่อพร้อมเปิดสาธารณะ), Stretch B (TTL auto-cleanup ห้องร้าง)*
 
 > **บทเรียน Round 3 (เพิ่มสำหรับสัมภาษณ์):** local เขียว ≠ prod เขียว ≠ **มือถือจริงใช้ได้** — bug ที่หนักสุดมาจาก device/network/clock จริง ไม่ใช่ logic · เครื่องมือที่ปิดเคสได้: build stamp ยืนยันเวอร์ชัน + on-device debug overlay + การแยก optimistic-display ออกจาก network-sync (local-first) · sync ข้ามเครื่องที่ถูกคือ "server เป็น source of truth, re-fetch on focus" ไม่ใช่ push realtime (over-engineer สำหรับ scope นี้)
