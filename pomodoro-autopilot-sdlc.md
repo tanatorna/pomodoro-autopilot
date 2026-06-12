@@ -67,6 +67,7 @@
 - **Room** — แยกข้อมูลต่อผู้ใช้ + แชร์ห้องผ่านลิงก์ (สร้าง / แก้รหัส+เช็คซ้ำ / เข้าห้องอื่น / ลบห้อง)
 - **Login (optional Google sign-in)** — claim ห้อง + เข้าถึงข้ามเครื่อง (ไม่บังคับ login)
 - **Task edit / delete / reorder** — แก้ชื่อ + จำนวน 🍅 inline · ลบ task (กัน task ที่กำลังโฟกัสไม่ให้ลบ) · **ใช้ได้ทั้ง Schedule + Backlog** · จัดลำดับใน Schedule: ▲▼ ทีละ 1 หรือ **กดค้าง+ลากการ์ด** (drag-reorder, @dnd-kit)
+- **Mark done มือ (✔)** — ปุ่ม ✔ บนการ์ด (task ที่ไม่ได้โฟกัสอยู่) สำหรับเคส "ทำงานจริงแล้วแต่ลืมกดเริ่ม timer" → mark done + เครดิต 🍅 เต็มตาม estimate + stamp `doneDate` วันนี้ → เข้า Stats เหมือนทำผ่าน timer
 - **Task picker ตอน IDLE (C2)** — preview "ถัดไป · &lt;task&gt;" + ปุ่ม "เปลี่ยน" ก่อนกดเริ่ม
 - **Switch/Skip task กลางลูก** — คลิก "เริ่ม" task อื่นใน list = switch · ปุ่ม "⏭ ข้าม" ใน timer = ไป next pending (ลูกที่ทิ้งไม่นับ, confirm 2 ชั้น)
 - **Defer to Backlog + scheduledFor** — task ใน Schedule กดปุ่ม 📥 ย้ายไป Backlog · Backlog ปักวันได้ (native date picker, แยก 2 section: มีกำหนด/ยังไม่กำหนด) · auto-promote ตอนถึงวันที่ปัก
@@ -123,7 +124,7 @@
 | J4 | **แทรกงานด่วน** | กด Interrupt FAB → กรอกงาน → void ลูกปัจจุบัน + จัด schedule ใหม่ + เริ่มงานด่วนทันที |
 | J5 | **แก้ไข/ลบ/จัดลำดับ task** | แก้ชื่อ+🍅 inline (ดับเบิลคลิก/✎) + 🗑 ลบ → **ทำได้ทั้ง Schedule + Backlog** (task ที่กำลังโฟกัส **ลบไม่ได้**) · จัดลำดับ (Schedule เท่านั้น): ▲▼ ทีละ 1 หรือ **กดค้าง+ลากการ์ด** (drag-reorder) · Backlog เรียงตามวันที่ปัก |
 | J6 | **Switch / Skip กลางลูก** | ขณะ WORK/PAUSED คลิก "เริ่ม" task อื่น = **switch** (confirm, ลูกที่ทิ้งไม่นับ) · ปุ่ม "⏭ ข้าม task นี้" ใน timer = **skip** ไป next pending (ลูกที่ทำเสร็จก่อนหน้ายังเก็บไว้) |
-| J7 | **จบ task ก่อนเวลา (finish early)** | ขณะ WORK กด "✓ เสร็จ task นี้" → นับลูกที่ทำอยู่ให้ task นี้เต็มลูก + mark done → เวลาที่เหลือเดินต่อให้ task ถัดไป (โชว์ "ต่อเวลา") |
+| J7 | **จบ task เอง (ไม่รอ timer)** | (a) **finish early:** ขณะ WORK กด "✓ เสร็จ task นี้" → นับลูกที่ทำอยู่เต็มลูก + done → เวลาที่เหลือเดินต่อให้ task ถัดไป ("ต่อเวลา") · (b) **mark done มือ:** ปุ่ม **✔** บนการ์ด (ตัวที่ไม่ได้โฟกัส) → done + เครดิต 🍅 เต็ม estimate + เข้า Stats — เคสทำงานจริงแล้วแต่ลืมกดเริ่ม timer |
 | J8 | **เก็บงาน / จบวัน** | ปุ่ม **🧹 เก็บ task ที่เสร็จเข้าคลัง** (archive, หายจาก Schedule) · ปุ่ม **🌙 จบวัน** = ย้าย task ค้างไป Backlog + reset · **auto จบวันเที่ยงคืน** (เปิดแอปข้ามวัน → เก็บ task เสร็จ + task ค้างยกมาวันใหม่) |
 | J9 | **Backlog / park งานอนาคต** | เก็บงานเข้า Backlog · **ปักวัน** (date picker → auto-promote เป็น today เมื่อถึงวัน) · ดึงกลับมาทำวันนี้ (↑) · Schedule กด 📥 ส่งกลับ Backlog |
 | J10 | **ดูสถิติ (Stats)** | แท็บ 📊 Stats → สรุปค่าเฉลี่ย 🍅/task ต่อวัน + ประวัติรายวัน (แท่งสัดส่วน) → **คลิกการ์ดวัน = กางดู task ที่เสร็จวันนั้น** |
@@ -133,7 +134,7 @@
 
 #### 🎨 C. States ที่ต้องออกแบบ (designer checklist)
 - **Timer:** IDLE "พร้อมเริ่ม" / WORK "โฟกัส 🍅" / SHORT_BREAK "พักสั้น ☕" / LONG_BREAK "พักยาว 🛋️" / PAUSED "หยุดพัก ⏸" / loading "--:--"
-- **Task item:** ปกติ / **active** (ไฮไลต์ terracotta tint + จุดกะพริบ) / **done** (rank=✓ sage, ขีดฆ่า) / **editing** (inline input) / **dragging** (ยกขึ้น, opacity ลด — Schedule) / hover (โผล่ปุ่ม ✎ 🗑)
+- **Task item:** ปกติ / **active** (ไฮไลต์ terracotta tint + จุดกะพริบ) / **done** (rank=✓ sage, ขีดฆ่า) / **editing** (inline input) / **dragging** (ยกขึ้น, opacity ลด — Schedule) / hover (โผล่ปุ่ม ✔ ✎ 🗑)
 - **Task list:** ว่าง ("ยังไม่มี task — พิมพ์ด้านบน 👆") / มีรายการ
 - **Stats:** ว่าง ("ยังไม่มีสถิติ...") / มีข้อมูล (สรุปค่าเฉลี่ย + การ์ดรายวัน) / การ์ดกาง (list task ของวัน · วันเก่าก่อนมีฟีเจอร์ = "ไม่มีรายละเอียด")
 - **Room dropdown:** ปัจจุบัน(+แก้รหัส+copy) / สร้างใหม่ / เข้าห้องอื่น / danger zone ลบ(idle→confirm) · rename: checking/available/taken/invalid
@@ -408,6 +409,7 @@ Slice 4 ✅ Backlog + End-of-day summary      → api/backlog, BacklogView, DayS
 | `d1481d3` | **Stats: total → ค่าเฉลี่ย/วัน** — สรุปแสดง 🍅 เฉลี่ย/วัน + task เฉลี่ย/วัน + จำนวนวัน (baseline ตัวเอง ไว้เทียบ/ตั้งเป้า · total โตเรื่อยๆ ไม่บอกอะไร) |
 | `2920a23` | **Style: scrollbar บางกลืนธีม** — global plain CSS (WebKit pseudo-element + Firefox `scrollbar-width/color`) · track ใส, thumb terracotta-brown โปร่งโค้งมน · ครอบทุก scroll area |
 | `897c508` | **Feat: edit/delete task ใน Backlog** — เพิ่ม inline edit (ชื่อ + stepper 🍅) + ปุ่ม 🗑 ใน BacklogView (parity กับ Schedule, reuse `handleEditTask`/`handleDeleteTask`) · handler reload ทั้ง tasks+backlog → sync 2 list |
+| `(2026-06-12)` | **Feat: ปุ่ม ✔ mark done มือ** — เคส "ทำงานจริงไปหลายลูกแล้วแต่ลืมกดเริ่ม timer" → กด ✔ บนการ์ด = `status done` + `completedPomodoros = max(เดิม, estimate)` + stamp `doneDate` วันนี้ → เข้า Stats เหมือนทำผ่าน timer · โชว์เฉพาะ task ที่ไม่ done และ**ไม่ใช่ตัวที่กำลังโฟกัส** (ตัวโฟกัสใช้ "เสร็จ task นี้" ใน Timer) · PATCH /api/tasks/[id] รับ `completedPomodoros` + `doneDate` เพิ่ม |
 | `(2026-06-10)` | **Feat: ลากเรียงลำดับ task (drag-reorder)** — `@dnd-kit` ใน ScheduleMain · กดค้าง/ลากการ์ด active เลื่อนตำแหน่งได้ (ย้าย #10→#1 ครั้งเดียว แทนกด ▲ 9 ที) · sensors: MouseSensor(distance 8) + TouchSensor(delay 220ms = long-press, ปัดเร็ว=scroll) + Keyboard · done tasks ปักล่างนิ่ง · optimistic order state (sync เมื่อชุด id เปลี่ยน) · drop → `onReorder` reassign priority (len..1) PATCH เฉพาะที่เปลี่ยน · เก็บปุ่ม ▲▼ ไว้ (ปุ่มไม่ชน drag เพราะ activation constraint) |
 
 > **Build Log — ฟีเจอร์ Room (commit + push prod แล้ว · 2026-05-30):**

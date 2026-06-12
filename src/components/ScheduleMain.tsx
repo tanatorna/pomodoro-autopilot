@@ -33,6 +33,8 @@ interface ScheduleMainProps {
   onPriorityDown: (taskId: number) => Promise<void>;
   /** ลากเรียงลำดับใหม่ทั้งชุด (id เรียงจากบน→ล่าง) */
   onReorder: (orderedIds: number[]) => Promise<void>;
+  /** mark done มือ (✔) — ทำเสร็จแล้วแต่ลืมกดเริ่ม timer · เครดิต 🍅 เต็ม estimate เข้า Stats */
+  onMarkDone: (taskId: number) => Promise<void>;
   onEdit: (taskId: number, patch: { title?: string; estimatedPomodoros?: number }) => Promise<void>;
   /** ย้าย task ไป backlog (ไม่ทำวันนี้แล้ว) */
   onMoveToBacklog: (taskId: number) => Promise<void>;
@@ -89,6 +91,7 @@ export function ScheduleMain({
   onPriorityUp,
   onPriorityDown,
   onReorder,
+  onMarkDone,
   onEdit,
   onMoveToBacklog,
   onDelete,
@@ -266,6 +269,17 @@ export function ScheduleMain({
             className="flex items-center justify-end gap-1 pl-6"
             onPointerDown={(e) => e.stopPropagation()}
           >
+            {!isActive && !isDone && (
+              <button
+                onClick={() => onMarkDone(task.id)}
+                className="text-xs font-semibold w-6 h-6 flex items-center justify-center rounded hover:bg-secondary"
+                style={{ color: "var(--success)" }}
+                title="ทำเสร็จแล้ว (นับ 🍅 เต็มเข้าสถิติ)"
+              >
+                ✔
+              </button>
+            )}
+
             {!isDone && (
               <div className="flex items-center gap-0.5">
                 <button

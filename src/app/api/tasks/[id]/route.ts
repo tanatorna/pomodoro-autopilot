@@ -6,6 +6,10 @@ type PatchBody = {
   priority?: number;
   status?: string;
   estimatedPomodoros?: number;
+  /** ใช้ตอน mark done มือ (✔) — เครดิตลูกที่ทำไปแล้วโดยไม่ผ่าน timer */
+  completedPomodoros?: number;
+  /** YYYY-MM-DD (local) วันที่เสร็จจริง — stamp ตอน mark done มือ ให้เข้า Stats */
+  doneDate?: string;
   /** ISO string (YYYY-MM-DD) หรือ null = เคลียร์วัน */
   scheduledFor?: string | null;
 };
@@ -36,6 +40,10 @@ export async function PATCH(
         ...(body.estimatedPomodoros !== undefined && {
           estimatedPomodoros: body.estimatedPomodoros,
         }),
+        ...(body.completedPomodoros !== undefined && {
+          completedPomodoros: body.completedPomodoros,
+        }),
+        ...(body.doneDate !== undefined && { doneDate: body.doneDate }),
         ...(body.scheduledFor !== undefined && {
           scheduledFor: body.scheduledFor ? new Date(body.scheduledFor) : null,
         }),

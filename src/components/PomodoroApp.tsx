@@ -277,6 +277,25 @@ export function PomodoroApp() {
     await generateSchedule();
   }
 
+  /** Mark done มือ (✔) — เคสทำงานจริงแล้วแต่ลืมกดเริ่ม timer:
+   *  เครดิตลูก 🍅 เต็มตาม estimate + stamp doneDate วันนี้ → เข้า Stats เหมือนทำผ่าน timer */
+  async function handleMarkDone(taskId: number) {
+    const t = tasks.find((x) => x.id === taskId);
+    if (!t) return;
+    await fetch(`/api/tasks/${taskId}`, {
+      method: "PATCH",
+      headers: roomHeaders,
+      body: JSON.stringify({
+        status: "done",
+        completedPomodoros: Math.max(t.completedPomodoros, t.estimatedPomodoros),
+        doneDate: new Date().toLocaleDateString("en-CA"),
+      }),
+    });
+    await Promise.all([loadTasks(), loadStats()]);
+    await generateSchedule(); // เคลียร์ slot ของ task นี้ออกจากตาราง
+    showToast(`✔ "${t.title}" เสร็จแล้ว — นับ ${Math.max(t.completedPomodoros, t.estimatedPomodoros)} 🍅 เข้าสถิติ`);
+  }
+
   /** ย้าย task ขึ้น/ลง 1 ตำแหน่งใน queue (สลับกับเพื่อนบ้าน)
    *  เดิมใช้ priority ± 1 → พังเมื่อทุก task priority เท่ากัน (เช่นทุกตัว = 0 ค่า default)
    *  วิธีใหม่: เรียงตามที่แสดงจริง (priority desc, id asc) → สลับกับเพื่อนบ้าน →
@@ -578,6 +597,7 @@ export function PomodoroApp() {
                 onPriorityUp={handlePriorityUp}
                 onPriorityDown={handlePriorityDown}
                 onReorder={handleReorder}
+                onMarkDone={handleMarkDone}
                 onEdit={handleEditTask}
                 onMoveToBacklog={handleMoveToBacklog}
                 onDelete={handleDeleteTask}
