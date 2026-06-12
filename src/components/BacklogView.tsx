@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Task } from "@/generated/prisma/client";
 import { TaskForm } from "./TaskForm";
+import { TrashIcon } from "./icons";
 
 interface BacklogViewProps {
   tasks: Task[];
@@ -203,7 +204,7 @@ export function BacklogView({ tasks, onAdd, onMoveToActive, onScheduleTask, onEd
               className="text-[var(--faint)] hover:text-[var(--danger)] text-xs w-6 h-7 flex items-center justify-center rounded hover:bg-secondary"
               title="ลบ task"
             >
-              🗑
+              <TrashIcon />
             </button>
           </div>
         </div>

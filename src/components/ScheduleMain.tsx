@@ -22,6 +22,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
 import { TaskForm } from "./TaskForm";
+import { TrashIcon, ToBacklogIcon } from "./icons";
 
 interface ScheduleMainProps {
   tasks: Task[];
@@ -322,7 +323,7 @@ export function ScheduleMain({
                 className="text-[var(--faint)] hover:text-foreground text-xs w-6 h-6 flex items-center justify-center rounded hover:bg-secondary"
                 title="ยังไม่ทำวันนี้ — ย้ายไป Backlog"
               >
-                📥
+                <ToBacklogIcon />
               </button>
             )}
             {(!isActive || isDone) && (
@@ -331,7 +332,7 @@ export function ScheduleMain({
                 className="text-[var(--faint)] hover:text-[var(--danger)] text-xs w-6 h-6 flex items-center justify-center rounded hover:bg-secondary"
                 title="ลบ task"
               >
-                🗑
+                <TrashIcon />
               </button>
             )}
           </div>
