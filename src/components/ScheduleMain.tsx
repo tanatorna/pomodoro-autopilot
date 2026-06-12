@@ -272,8 +272,7 @@ export function ScheduleMain({
             {!isActive && !isDone && (
               <button
                 onClick={() => onMarkDone(task.id)}
-                className="text-xs font-semibold w-6 h-6 flex items-center justify-center rounded hover:bg-secondary"
-                style={{ color: "var(--success)" }}
+                className="text-[var(--faint)] hover:text-primary text-xs w-6 h-6 flex items-center justify-center rounded hover:bg-secondary"
                 title="ทำเสร็จแล้ว (นับ 🍅 เต็มเข้าสถิติ)"
               >
                 ✔
